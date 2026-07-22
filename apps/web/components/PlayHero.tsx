@@ -1,6 +1,7 @@
 "use client";
 
 import { fmtTime } from "../lib/format";
+import { PauseIcon, PlayIcon } from "./icons";
 
 export function PlayHero({
   durationSec,
@@ -12,35 +13,41 @@ export function PlayHero({
   onToggle: () => void;
 }) {
   return (
-    <section className="playhero">
-      <button
-        className={`playhero__btn${isPlaying ? " is-playing" : ""}`}
-        onClick={onToggle}
-        aria-label={isPlaying ? "Pause briefing" : "Play briefing"}
-      >
+    <section className="relative mb-8 overflow-hidden rounded-[1.75rem] bg-bottle p-6 text-cream">
+      {/* one clean graphic accent — a danfo-yellow sun bleeding off the corner */}
+      <div
+        className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-sun/20"
+        aria-hidden="true"
+      />
+
+      <div className="relative flex items-center gap-4">
+        <button
+          onClick={onToggle}
+          aria-label={isPlaying ? "Pause briefing" : "Play briefing"}
+          className="flex h-16 w-16 flex-none items-center justify-center rounded-full bg-coral text-cream transition hover:bg-coral-deep active:scale-95"
+        >
+          {isPlaying ? <PauseIcon /> : <PlayIcon className="ml-1 h-6 w-6" />}
+        </button>
+        <div className="min-w-0">
+          <p className="font-display text-4xl font-bold leading-none">
+            {fmtTime(durationSec)}
+          </p>
+          <p className="mt-2 text-sm text-cream-dim">
+            The whole brief · read aloud
+          </p>
+        </div>
+      </div>
+
+      <p className="relative mt-5 flex items-center gap-2 text-sm font-medium text-cream-dim">
         {isPlaying ? (
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M6 5h4v14H6zM14 5h4v14h-4z" />
-          </svg>
+          <>
+            <span className="h-2 w-2 animate-pulse-soft rounded-full bg-coral" />
+            On air now
+          </>
         ) : (
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M8 5v14l11-7z" />
-          </svg>
+          "Press play for this morning's reading"
         )}
-      </button>
-      <div className="playhero__meta">
-        <p className="playhero__label">Today&apos;s transmission</p>
-        <p className="playhero__duration">
-          {fmtTime(durationSec)} · read by Kokoro
-        </p>
-      </div>
-      <div className="playhero__wave" aria-hidden="true">
-        {WAVE_BARS.map((h, i) => (
-          <i key={i} style={{ height: `${h}px` }} />
-        ))}
-      </div>
+      </p>
     </section>
   );
 }
-
-const WAVE_BARS = [10, 18, 28, 15, 32, 22, 12, 26, 34, 19];

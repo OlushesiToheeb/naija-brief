@@ -61,9 +61,9 @@ export function BriefView({
     : `Generated ${lagosTime(brief.generatedAt)} · all sources reached`;
 
   return (
-    <div className="brief-view">
+    <div>
       {!brief.isToday && (
-        <p className="stale-note">
+        <p className="mb-5 text-sm font-medium text-coral">
           Today&apos;s brief isn&apos;t ready yet — showing {brief.dateLabel}.
         </p>
       )}
@@ -77,7 +77,7 @@ export function BriefView({
       )}
 
       {!hasAudio && (
-        <p className="no-audio-note">
+        <p className="mb-8 rounded-2xl border border-line bg-paper p-4 text-sm leading-relaxed text-taupe">
           {player.unavailable
             ? "The audio for this brief couldn't be played. The scripts below are still here."
             : brief.audioError
@@ -87,10 +87,11 @@ export function BriefView({
       )}
 
       <div>
-        {brief.sections.map((section) => (
+        {brief.sections.map((section, i) => (
           <SectionBlock
             key={section.id}
             section={section}
+            index={i}
             date={brief.date}
             jumpSec={hasAudio ? markerFor(section.id) : null}
             onJump={jumpAndPlay}
@@ -98,9 +99,12 @@ export function BriefView({
         ))}
       </div>
 
-      <footer className="foot">
-        <p>{sourcesNote}</p>
-        <button className="button button--ghost" onClick={onRegenerate}>
+      <footer className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5 text-sm text-taupe">
+        <p className="min-w-0">{sourcesNote}</p>
+        <button
+          className="flex-none rounded-full border border-line px-4 py-2 font-medium text-taupe transition hover:border-coral hover:text-coral"
+          onClick={onRegenerate}
+        >
           Regenerate today&apos;s brief
         </button>
       </footer>

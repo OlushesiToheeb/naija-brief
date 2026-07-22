@@ -1,12 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
-import { Space_Mono } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegister } from "../components/ServiceWorkerRegister";
 
-// Clash Display — headlines & the station ident (self-hosted from Fontshare).
+// Clash Display — the wordmark, headlines and section titles (self-hosted).
 const display = localFont({
-  variable: "--font-display",
+  variable: "--font-clash",
   display: "swap",
   src: [
     { path: "./fonts/ClashDisplay-500.woff2", weight: "500", style: "normal" },
@@ -15,22 +14,15 @@ const display = localFont({
   ],
 });
 
-// General Sans — body & UI text.
+// General Sans — body, UI and labels.
 const body = localFont({
-  variable: "--font-body",
+  variable: "--font-general",
   display: "swap",
   src: [
     { path: "./fonts/GeneralSans-400.woff2", weight: "400", style: "normal" },
     { path: "./fonts/GeneralSans-500.woff2", weight: "500", style: "normal" },
     { path: "./fonts/GeneralSans-600.woff2", weight: "600", style: "normal" },
   ],
-});
-
-// Space Mono — broadcast data: timecodes, ON AIR, CUE markers, source tags.
-const mono = Space_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
-  weight: ["400", "700"],
 });
 
 export const metadata: Metadata = {
@@ -50,7 +42,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0c3b2a",
+  themeColor: "#0c5c3e",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -60,10 +52,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html
-      lang="en"
-      className={`${display.variable} ${body.variable} ${mono.variable}`}
-    >
+    <html lang="en" className={`${display.variable} ${body.variable}`}>
       <body>
         {children}
         <ServiceWorkerRegister />

@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import type { Brief } from "@naija-brief/shared";
 import { fmtTime } from "../lib/format";
 import type { AudioPlayer } from "../lib/useAudioPlayer";
+import { MicIcon, PauseIcon, PlayIcon } from "./icons";
 
 function segmentTitle(brief: Brief, id: string): string {
   if (id === "intro") return "Intro";
@@ -49,90 +50,89 @@ export function OnAirBar({
   };
 
   return (
-    <div className="onair">
-      <button
-        className={`onair__play${player.isPlaying ? " is-playing" : ""}`}
-        onClick={player.toggle}
-        aria-label={player.isPlaying ? "Pause briefing" : "Play briefing"}
-      >
-        {player.isPlaying ? (
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M6 5h4v14H6zM14 5h4v14h-4z" />
-          </svg>
-        ) : (
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M8 5v14l11-7z" />
-          </svg>
-        )}
-      </button>
-
-      <div className="onair__body">
-        <div className="onair__row">
-          <span className="onair__live">
-            <span className="onair__dot" aria-hidden="true" />
-            On air
-          </span>
-          <span className="onair__section">{currentTitle}</span>
-          <span className="onair__time">
-            {fmtTime(player.currentTime)} / {fmtTime(duration)}
-          </span>
-        </div>
-
-        <div
-          className="onair__track"
-          role="slider"
-          aria-label="Seek"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={Math.round(pct)}
-          aria-valuetext={`${fmtTime(player.currentTime)} of ${fmtTime(duration)}`}
-          tabIndex={0}
-          onClick={onTrackClick}
-          onKeyDown={onTrackKey}
+    <div className="fixed inset-x-0 bottom-0 z-30 bg-bottle text-cream shadow-[0_-8px_30px_rgba(8,74,49,0.28)]">
+      <div className="mx-auto flex max-w-[46rem] items-center gap-3 px-4 pb-[calc(0.7rem+env(safe-area-inset-bottom))] pt-2.5">
+        <button
+          className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-coral text-cream transition hover:bg-coral-deep active:scale-95"
+          onClick={player.toggle}
+          aria-label={player.isPlaying ? "Pause briefing" : "Play briefing"}
         >
-          <div className="onair__fill" style={{ width: `${pct}%` }} />
-          <div className="onair__marks">
+          {player.isPlaying ? (
+            <PauseIcon className="h-4.5 w-4.5" />
+          ) : (
+            <PlayIcon className="ml-0.5 h-4.5 w-4.5" />
+          )}
+        </button>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline gap-2 text-sm">
+            <span className="truncate font-medium text-cream">
+              {currentTitle}
+            </span>
+            <span className="ml-auto flex-none text-xs text-cream-dim tabular-nums">
+              {fmtTime(player.currentTime)} / {fmtTime(duration)}
+            </span>
+          </div>
+
+          <div
+            className="relative mt-2 h-1.5 cursor-pointer rounded-full bg-cream/20"
+            role="slider"
+            aria-label="Seek"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(pct)}
+            aria-valuetext={`${fmtTime(player.currentTime)} of ${fmtTime(duration)}`}
+            tabIndex={0}
+            onClick={onTrackClick}
+            onKeyDown={onTrackKey}
+          >
+            <div
+              className="absolute inset-y-0 left-0 rounded-full bg-coral"
+              style={{ width: `${pct}%` }}
+            />
             {markers
               .filter((m) => m.startSec > 0.5)
               .map((m) => (
                 <span
                   key={m.id}
+                  className="absolute top-1/2 h-2.5 w-px -translate-y-1/2 bg-cream/35"
                   style={{ left: `${(m.startSec / duration) * 100}%` }}
                 />
               ))}
           </div>
+
+          <div className="mt-2 flex gap-1.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {markers.map((m) => {
+              const current = m.id === player.currentMarkerId;
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => player.seekToMarker(m.id)}
+                  className={`flex-none whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition ${
+                    current
+                      ? "bg-coral text-cream"
+                      : "text-cream-dim hover:text-cream"
+                  }`}
+                >
+                  {segmentTitle(brief, m.id)}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        <div className="onair__chips">
-          {markers.map((m) => (
-            <button
-              key={m.id}
-              className={`chip${m.id === player.currentMarkerId ? " is-current" : ""}`}
-              onClick={() => player.seekToMarker(m.id)}
-            >
-              {segmentTitle(brief, m.id)}
-            </button>
-          ))}
-        </div>
+        <button
+          className="flex flex-none flex-col items-center gap-0.5 rounded-2xl bg-cream/10 px-3 py-1.5 text-cream transition hover:bg-coral"
+          onClick={onAsk}
+          aria-label="Interrupt and ask a question"
+          title="Ask about what's playing"
+        >
+          <MicIcon className="h-5 w-5" />
+          <span className="text-[0.6rem] font-semibold uppercase tracking-wide">
+            Ask
+          </span>
+        </button>
       </div>
-
-      <button
-        className="onair__ask"
-        onClick={onAsk}
-        aria-label="Interrupt and ask a question"
-        title="Ask about what's playing"
-      >
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3z" />
-          <path
-            d="M19 11a7 7 0 0 1-14 0M12 18v3"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          />
-        </svg>
-        <span>Ask</span>
-      </button>
     </div>
   );
 }

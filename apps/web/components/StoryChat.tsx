@@ -44,32 +44,42 @@ export function StoryChat({
   };
 
   return (
-    <div className="chat">
-      <div className="chat__log">
-        {log.map((m, i) => (
-          <div
-            key={i}
-            className={`chat__msg chat__msg--${m.role === "user" ? "user" : "bot"}${
-              m.error ? " chat__msg--error" : ""
-            }`}
-          >
-            {m.content}
-          </div>
-        ))}
-        {pending && (
-          <div className="chat__msg chat__msg--pending">thinking…</div>
-        )}
-      </div>
-      <form className="chat__form" onSubmit={submit}>
+    <div className="mt-4">
+      {(log.length > 0 || pending) && (
+        <div className="mb-2 flex flex-col gap-2">
+          {log.map((m, i) => (
+            <div
+              key={i}
+              className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-[0.95rem] leading-relaxed ${
+                m.role === "user"
+                  ? "self-end rounded-br-sm bg-bottle text-cream"
+                  : m.error
+                    ? "self-start rounded-bl-sm border border-coral/40 bg-coral/[0.06] text-coral-deep"
+                    : "self-start rounded-bl-sm border border-line bg-paper text-ink"
+              }`}
+            >
+              {m.content}
+            </div>
+          ))}
+          {pending && (
+            <div className="self-start text-sm text-taupe">thinking…</div>
+          )}
+        </div>
+      )}
+      <form className="flex gap-2" onSubmit={submit}>
         <input
-          className="chat__input"
+          className="min-w-0 flex-1 rounded-full border border-line bg-paper px-4 py-2.5 text-ink placeholder:text-taupe/60 focus-visible:border-coral"
           type="text"
           placeholder="Ask about this story…"
           aria-label="Ask about this story"
           value={input}
           onChange={(e) => setInput(e.target.value)}
         />
-        <button className="chat__send" type="submit" disabled={pending}>
+        <button
+          className="flex-none rounded-full bg-coral px-4 font-display font-semibold text-cream transition hover:bg-coral-deep disabled:opacity-50"
+          type="submit"
+          disabled={pending}
+        >
           Ask
         </button>
       </form>

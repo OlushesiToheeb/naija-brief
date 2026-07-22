@@ -9,11 +9,11 @@ export default function Home() {
   const { view, brief, errorText, genStep, generate } = useBrief();
 
   return (
-    <div className="page">
+    <div className="mx-auto max-w-[46rem] px-5 pb-40 pt-8 sm:px-7">
       <Masthead />
       <main>
         {view === "loading" && (
-          <p className="loading-note">Loading your briefing…</p>
+          <p className="text-sm font-medium text-taupe">Tuning in…</p>
         )}
         {view === "empty" && <EmptyState onGenerate={generate} />}
         {view === "generating" && <GeneratingState step={genStep} />}

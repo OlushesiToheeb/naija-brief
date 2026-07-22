@@ -2,6 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useVoiceAsk } from "../lib/useVoiceAsk";
+import { MicIcon } from "./icons";
+
+const chipBtn =
+  "rounded-full bg-cream/10 px-3 py-1 text-xs font-medium text-cream " +
+  "transition hover:bg-cream/20";
 
 export function VoiceAsk({
   date,
@@ -36,50 +41,67 @@ export function VoiceAsk({
   const listening = va.status === "listening";
 
   return (
-    <div className="voiceask" role="dialog" aria-label={`Ask about ${segmentLabel}`}>
-      <div className="voiceask__head">
-        <span className="voiceask__live">
-          <span className="voiceask__dot" aria-hidden="true" />
+    <div
+      role="dialog"
+      aria-label={`Ask about ${segmentLabel}`}
+      className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[46rem] animate-sheet-up rounded-t-[1.75rem] bg-bottle px-5 pb-[calc(1.1rem+env(safe-area-inset-bottom))] pt-3 text-cream shadow-[0_-14px_44px_rgba(8,74,49,0.4)]"
+    >
+      <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-cream/30" aria-hidden="true" />
+
+      <div className="mb-4 flex items-center gap-2 text-sm">
+        <span className="inline-flex flex-none items-center gap-1.5 font-semibold text-coral">
+          <span className="h-2 w-2 animate-pulse-soft rounded-full bg-coral" />
           Call-in
         </span>
-        <span className="voiceask__ctx">re: {segmentLabel}</span>
-        <button className="voiceask__close" onClick={onClose} aria-label="Resume briefing">
+        <span className="truncate text-cream-dim">re: {segmentLabel}</span>
+        <button
+          className="ml-auto flex-none font-medium text-cream transition hover:text-sun"
+          onClick={onClose}
+          aria-label="Resume briefing"
+        >
           Resume ▸
         </button>
       </div>
 
-      <div className="voiceask__body">
+      <div className="flex min-h-[66px] items-center gap-4">
         <button
-          className={`voiceask__mic${listening ? " is-live" : ""}`}
+          className={`relative flex h-16 w-16 flex-none items-center justify-center rounded-full border-2 transition disabled:opacity-50 ${
+            listening
+              ? "border-coral bg-coral text-cream"
+              : "border-cream/40 bg-cream/5 text-cream hover:border-coral"
+          }`}
           onClick={() => (listening ? va.submit(va.transcript) : va.startListening())}
           aria-label={listening ? "Stop and send" : "Start speaking"}
           disabled={va.status === "thinking"}
         >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3z" />
-            <path d="M19 11a7 7 0 0 1-14 0M12 18v3" fill="none" stroke="currentColor" strokeWidth="2" />
-          </svg>
+          {listening && (
+            <span
+              className="absolute inset-0 animate-ring rounded-full border-2 border-coral"
+              aria-hidden="true"
+            />
+          )}
+          <MicIcon className="h-7 w-7" />
         </button>
 
-        <div className="voiceask__state">
+        <div className="min-w-0 flex-1">
           {va.status === "listening" && (
-            <p className="voiceask__hint">
+            <p className="text-[1.02rem] leading-snug text-cream">
               {va.transcript || "Listening… ask your question out loud."}
             </p>
           )}
           {va.status === "thinking" && (
-            <p className="voiceask__hint voiceask__hint--mono">
+            <p className="text-sm text-cream-dim">
               {va.transcript ? `“${va.transcript}”` : "Thinking…"}
             </p>
           )}
           {va.status === "answering" && (
-            <p className="voiceask__answer">{va.answer}</p>
+            <p className="text-[1.02rem] leading-relaxed text-cream">{va.answer}</p>
           )}
           {va.status === "error" && (
-            <p className="voiceask__hint voiceask__hint--err">{va.error}</p>
+            <p className="text-[0.98rem] text-sun">{va.error}</p>
           )}
           {va.status === "idle" && (
-            <p className="voiceask__hint">
+            <p className="text-[1.02rem] text-cream-dim">
               {va.sttSupported
                 ? "Tap the mic and ask, or type below."
                 : "Type your question below."}
@@ -88,32 +110,39 @@ export function VoiceAsk({
         </div>
       </div>
 
-      <div className="voiceask__foot">
+      <div className="mt-4">
         {va.status === "answering" && (
-          <div className="voiceask__actions">
+          <div className="mb-3 flex flex-wrap gap-2">
             {va.speaking && (
-              <button className="chip" onClick={va.stop}>
+              <button className={chipBtn} onClick={va.stop}>
                 ◼ Stop
               </button>
             )}
-            <button className="chip" onClick={va.startListening}>
+            <button className={chipBtn} onClick={va.startListening}>
               ↺ Ask again
             </button>
-            <button className="chip chip--go" onClick={onClose}>
+            <button
+              className="rounded-full bg-coral px-3 py-1 text-xs font-semibold text-cream"
+              onClick={onClose}
+            >
               Resume ▸
             </button>
           </div>
         )}
-        <form className="voiceask__form" onSubmit={onTypedSubmit}>
+        <form className="flex gap-2" onSubmit={onTypedSubmit}>
           <input
-            className="voiceask__input"
+            className="min-w-0 flex-1 rounded-full border border-cream/20 bg-cream/10 px-4 py-2.5 text-cream placeholder:text-cream-dim focus-visible:border-coral"
             type="text"
             placeholder="or type your question…"
             aria-label="Type your question"
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
           />
-          <button className="voiceask__send" type="submit" disabled={va.status === "thinking"}>
+          <button
+            className="flex-none rounded-full bg-coral px-4 font-display font-semibold text-cream transition hover:bg-coral-deep disabled:opacity-50"
+            type="submit"
+            disabled={va.status === "thinking"}
+          >
             Ask
           </button>
         </form>
