@@ -29,11 +29,18 @@ export function PlayHero({
         )}
       </button>
       <div className="playhero__meta">
-        <p className="playhero__label">Today&apos;s briefing</p>
+        <p className="playhero__label">Today&apos;s transmission</p>
         <p className="playhero__duration">
           {fmtTime(durationSec)} · read by Kokoro
         </p>
       </div>
+      <div className="playhero__wave" aria-hidden="true">
+        {WAVE_BARS.map((h, i) => (
+          <i key={i} style={{ height: `${h}px` }} />
+        ))}
+      </div>
     </section>
   );
 }
+
+const WAVE_BARS = [10, 18, 28, 15, 32, 22, 12, 26, 34, 19];

@@ -22,7 +22,7 @@ export function SectionBlock({
         <span className="section__rule" />
         {jumpSec !== null && (
           <button className="section__jump" onClick={() => onJump(jumpSec)}>
-            ▸ listen {fmtTime(jumpSec)}
+            ▸ cue {fmtTime(jumpSec)}
           </button>
         )}
       </div>

@@ -1,20 +1,28 @@
-/* Naija Brief — early-morning Lagos radio.
-   Palette: bottle green ink, warm milk paper, palm-leaf tint, danfo yellow. */
+/* Naija Brief — "Lagos Morning Broadcast".
+   Warm Nigerian editorial page with a dark broadcast-studio console.
+   Palette: cream paper · bottle green · terracotta · danfo gold · ON-AIR red. */
 
 :root {
-  --ink: #0d2b1d;
-  --ink-soft: #2c4a39;
-  --paper: #fbfaf3;
-  --leaf: #e9eedd;
-  --leaf-deep: #d7e0c6;
-  --danfo: #ffc42d;
-  --danfo-deep: #e0a415;
-  --kola: #b93a24;
-  --line: #cdd6c0;
+  --paper: #f7f1e3;
+  --paper-2: #fdfaf1;
+  --ink: #16241c;
+  --dim: #6d6a58;
+  --line: #e3d9c4;
 
-  --font-sans: var(--font-display), system-ui, sans-serif;
-  --font-serif: var(--font-body), Georgia, serif;
-  --font-code: var(--font-mono), ui-monospace, monospace;
+  --green: #0c3b2a;
+  --green-deep: #072117;
+  --green-line: rgba(240, 232, 210, 0.12);
+
+  --terra: #cf5a34;
+  --gold: #ecb838;
+  --gold-deep: #cf9d1c;
+  --air: #ff3b30;
+  --mint: #35e0a0;
+  --cream: #f4ecd8;
+
+  --display: var(--font-display), "Clash Display", system-ui, sans-serif;
+  --body: var(--font-body), "General Sans", system-ui, sans-serif;
+  --mono: var(--font-mono), ui-monospace, "Space Mono", monospace;
 }
 
 * {
@@ -23,8 +31,6 @@
   padding: 0;
 }
 
-/* Author-origin display rules (e.g. `.onair { display: flex }`) outrank the
-   UA `[hidden] { display: none }`, so restate it here or hidden panels leak. */
 [hidden] {
   display: none !important;
 }
@@ -36,9 +42,15 @@ html {
 body {
   background: var(--paper);
   color: var(--ink);
-  font-family: var(--font-serif);
-  font-size: 1.06rem;
+  font-family: var(--body);
+  font-size: 1.02rem;
   line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  background-image: radial-gradient(
+    120% 60% at 100% 0,
+    rgba(207, 90, 52, 0.06),
+    transparent 60%
+  );
 }
 
 button {
@@ -50,7 +62,7 @@ button {
 }
 
 :focus-visible {
-  outline: 3px solid var(--danfo-deep);
+  outline: 3px solid var(--gold-deep);
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -58,71 +70,74 @@ button {
 .page {
   max-width: 680px;
   margin: 0 auto;
-  padding: 2.2rem 1.2rem 9rem;
+  padding: 2rem 1.2rem 9.5rem;
 }
 
 .loading-note {
-  font-family: var(--font-code);
-  font-size: 0.9rem;
-  color: var(--ink-soft);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  color: var(--dim);
 }
 
 /* ---- Masthead ---- */
 .masthead {
-  margin-bottom: 2rem;
+  margin-bottom: 1.8rem;
 }
 
 .masthead__greeting {
-  font-family: var(--font-code);
-  font-size: 0.85rem;
-  letter-spacing: 0.12em;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--ink-soft);
+  color: var(--terra);
   min-height: 1.2em;
 }
 
 .masthead__title {
-  font-family: var(--font-sans);
-  font-weight: 800;
-  font-size: clamp(2.6rem, 9vw, 3.6rem);
-  line-height: 1.02;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(2.9rem, 11vw, 4rem);
+  line-height: 0.92;
   letter-spacing: -0.02em;
-  margin: 0.15rem 0 0.4rem;
+  color: var(--green);
+  margin: 0.4rem 0 0.5rem;
 }
 
 .masthead__title::after {
   content: "";
   display: block;
-  width: 3.2rem;
-  height: 0.55rem;
-  margin-top: 0.55rem;
-  background: var(--danfo);
+  width: 3.4rem;
+  height: 0.5rem;
+  margin-top: 0.5rem;
+  background: var(--gold);
   border-radius: 3px;
 }
 
 .masthead__date {
-  font-family: var(--font-code);
-  font-size: 0.85rem;
-  color: var(--ink-soft);
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--dim);
   min-height: 1.2em;
 }
 
 /* ---- Panels (empty / generating / error) ---- */
 .panel {
-  background: var(--leaf);
-  border-radius: 14px;
+  background: var(--paper-2);
+  border: 1.5px solid var(--line);
+  border-radius: 16px;
   padding: 1.8rem 1.5rem;
   margin-bottom: 1.5rem;
 }
 
 .panel--error {
-  background: #f6e3de;
+  border-color: var(--terra);
+  background: #f8e7de;
 }
 
 .panel__title {
-  font-family: var(--font-sans);
+  font-family: var(--display);
   font-weight: 600;
-  font-size: 1.35rem;
+  font-size: 1.45rem;
   margin-bottom: 0.5rem;
 }
 
@@ -132,44 +147,45 @@ button {
 }
 
 .panel__text--step {
-  font-family: var(--font-code);
-  font-size: 0.9rem;
-  color: var(--ink-soft);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  color: var(--terra);
 }
 
 .panel__hint {
   margin-top: 0.9rem;
   font-size: 0.9rem;
-  color: var(--ink-soft);
+  color: var(--dim);
 }
 
 .button {
   display: inline-block;
-  font-family: var(--font-sans);
+  font-family: var(--display);
   font-weight: 600;
   font-size: 1rem;
-  padding: 0.65rem 1.3rem;
+  padding: 0.62rem 1.3rem;
   border-radius: 999px;
 }
 
 .button--primary {
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--green);
+  color: var(--cream);
 }
 .button--primary:hover {
-  background: var(--ink-soft);
+  background: var(--green-deep);
 }
 
 .button--ghost {
   border: 1.5px solid var(--line);
-  color: var(--ink-soft);
+  color: var(--dim);
   font-size: 0.9rem;
 }
 .button--ghost:hover {
-  border-color: var(--ink-soft);
+  border-color: var(--terra);
+  color: var(--terra);
 }
 
-/* Generating dial: three bars pulsing like a VU meter */
+/* Generating dial: VU-meter bars */
 .dial {
   display: flex;
   gap: 5px;
@@ -180,7 +196,7 @@ button {
 .dial span {
   width: 7px;
   border-radius: 3px;
-  background: var(--danfo-deep);
+  background: var(--terra);
   animation: vu 1s ease-in-out infinite;
 }
 .dial span:nth-child(1) {
@@ -190,6 +206,7 @@ button {
 .dial span:nth-child(2) {
   height: 100%;
   animation-delay: 0.18s;
+  background: var(--gold);
 }
 .dial span:nth-child(3) {
   height: 45%;
@@ -198,108 +215,175 @@ button {
 @keyframes vu {
   0%,
   100% {
-    transform: scaleY(0.55);
+    transform: scaleY(0.5);
   }
   50% {
     transform: scaleY(1);
   }
 }
 
-/* ---- Play hero ---- */
+/* ---- Play deck (the studio console) ---- */
 .playhero {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 1.1rem;
-  background: var(--ink);
-  color: var(--paper);
-  border-radius: 16px;
-  padding: 1.2rem 1.4rem;
-  margin-bottom: 2.2rem;
+  background: linear-gradient(165deg, var(--green), var(--green-deep));
+  color: var(--cream);
+  border-radius: 18px;
+  padding: 1.25rem 1.4rem;
+  margin-bottom: 2.4rem;
+  overflow: hidden;
+}
+/* faint console scanlines */
+.playhero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0 7px,
+    rgba(53, 224, 160, 0.05) 7px 8px
+  );
+  pointer-events: none;
 }
 
 .playhero__btn {
+  position: relative;
   flex: none;
-  width: 64px;
-  height: 64px;
+  width: 66px;
+  height: 66px;
   border-radius: 50%;
-  background: var(--danfo);
+  background: var(--gold);
   display: grid;
   place-items: center;
+  box-shadow: 0 0 0 6px rgba(236, 184, 56, 0.14);
   transition: transform 0.15s ease;
 }
 .playhero__btn:hover {
   transform: scale(1.05);
 }
 .playhero__btn svg {
-  width: 28px;
-  height: 28px;
-  fill: var(--ink);
+  width: 26px;
+  height: 26px;
+  fill: var(--green-deep);
 }
 
+.playhero__meta {
+  position: relative;
+  min-width: 0;
+}
 .playhero__label {
-  font-family: var(--font-sans);
-  font-weight: 600;
-  font-size: 1.15rem;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--mint);
+  margin-bottom: 0.15rem;
 }
 .playhero__duration {
-  font-family: var(--font-code);
-  font-size: 0.85rem;
-  color: var(--leaf-deep);
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.15rem;
+  color: var(--cream);
+}
+
+/* decorative waveform on the right of the deck */
+.playhero__wave {
+  position: relative;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 34px;
+}
+.playhero__wave i {
+  width: 3px;
+  border-radius: 2px;
+  background: var(--mint);
+  opacity: 0.55;
+}
+.is-playing .playhero__wave i {
+  animation: wave 0.9s ease-in-out infinite;
+}
+@keyframes wave {
+  0%,
+  100% {
+    transform: scaleY(0.5);
+  }
+  50% {
+    transform: scaleY(1);
+  }
 }
 
 .stale-note,
 .no-audio-note {
-  font-family: var(--font-code);
-  font-size: 0.82rem;
-  color: var(--kola);
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--terra);
   margin-bottom: 1.2rem;
 }
 
-/* ---- Sections ---- */
+/* ---- Sections (numbered, editorial) ---- */
+.brief-view {
+  counter-reset: sec;
+}
 .section {
-  margin-bottom: 2.6rem;
+  counter-increment: sec;
+  margin-bottom: 2.7rem;
 }
 
 .section__eyebrow {
   display: flex;
   align-items: baseline;
   gap: 0.7rem;
-  margin-bottom: 0.8rem;
+  margin-bottom: 0.9rem;
+}
+.section__eyebrow::before {
+  content: counter(sec, decimal-leading-zero);
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--terra);
 }
 
 .section__label {
-  font-family: var(--font-code);
-  font-size: 0.8rem;
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.5rem;
+  letter-spacing: -0.01em;
   color: var(--ink);
-  background: var(--danfo);
-  padding: 0.2rem 0.55rem;
-  border-radius: 4px;
 }
 
 .section__rule {
   flex: 1;
-  height: 1.5px;
+  height: 2px;
   background: var(--line);
 }
 
 .section__jump {
-  font-family: var(--font-code);
-  font-size: 0.78rem;
-  color: var(--ink-soft);
-  text-decoration: underline dotted;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--green);
+  background: var(--cream);
+  border: 1px solid var(--line);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
 }
 .section__jump:hover {
-  color: var(--ink);
+  border-color: var(--terra);
+  color: var(--terra);
 }
 
 .section__script {
-  font-size: 1.12rem;
-  line-height: 1.6;
-  margin-bottom: 1.1rem;
-  max-width: 58ch;
+  font-size: 1.16rem;
+  line-height: 1.55;
+  color: #22301f;
+  max-width: 52ch;
+  padding-left: 1rem;
+  border-left: 4px solid var(--gold);
 }
 
 /* ---- Stories ---- */
@@ -313,36 +397,37 @@ button {
 .story__toggle {
   display: flex;
   align-items: baseline;
-  gap: 0.7rem;
+  gap: 0.8rem;
   width: 100%;
   text-align: left;
-  padding: 0.75rem 0.2rem;
+  padding: 0.85rem 0.2rem;
 }
 .story__toggle:hover .story__headline {
-  text-decoration: underline;
+  color: var(--terra);
 }
 
 .story__source {
   flex: none;
-  font-family: var(--font-code);
-  font-size: 0.72rem;
-  letter-spacing: 0.06em;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--ink-soft);
-  min-width: 7.5em;
+  color: var(--terra);
+  min-width: 8em;
 }
 
 .story__headline {
-  font-family: var(--font-sans);
-  font-weight: 600;
-  font-size: 1rem;
-  line-height: 1.35;
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 1.06rem;
+  line-height: 1.3;
+  transition: color 0.12s ease;
 }
 
 .story__chev {
   margin-left: auto;
   flex: none;
-  color: var(--ink-soft);
+  color: var(--dim);
   transition: transform 0.2s ease;
 }
 .story.is-open .story__chev {
@@ -350,21 +435,24 @@ button {
 }
 
 .story__detail {
-  padding: 0.2rem 0.2rem 1.1rem;
+  padding: 0.1rem 0.2rem 1.2rem;
 }
 
 .story__summary {
   max-width: 56ch;
   margin-bottom: 0.6rem;
+  color: #2c3a2c;
 }
 
 .story__link {
-  font-family: var(--font-code);
-  font-size: 0.8rem;
-  color: var(--ink-soft);
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  color: var(--green);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 .story__link:hover {
-  color: var(--ink);
+  color: var(--terra);
 }
 
 /* ---- Story chat ---- */
@@ -385,29 +473,32 @@ button {
 .chat__msg {
   max-width: 85%;
   padding: 0.5rem 0.8rem;
-  border-radius: 12px;
+  border-radius: 14px;
   font-size: 0.95rem;
   white-space: pre-wrap;
+  line-height: 1.45;
 }
 .chat__msg--user {
   align-self: flex-end;
-  background: var(--ink);
-  color: var(--paper);
-  border-bottom-right-radius: 3px;
+  background: var(--green);
+  color: var(--cream);
+  border-bottom-right-radius: 4px;
 }
 .chat__msg--bot {
   align-self: flex-start;
-  background: var(--leaf);
-  border-bottom-left-radius: 3px;
+  background: var(--cream);
+  border: 1px solid var(--line);
+  border-bottom-left-radius: 4px;
 }
 .chat__msg--error {
-  background: #f6e3de;
-  color: var(--kola);
+  background: #f8e7de;
+  border-color: var(--terra);
+  color: var(--terra);
 }
 .chat__msg--pending {
   align-self: flex-start;
-  color: var(--ink-soft);
-  font-family: var(--font-code);
+  color: var(--dim);
+  font-family: var(--mono);
   font-size: 0.8rem;
 }
 
@@ -418,31 +509,33 @@ button {
 
 .chat__input {
   flex: 1;
-  font: inherit;
+  font-family: var(--body);
   font-size: 16px; /* >=16px keeps iOS Safari from auto-zooming on focus */
-  padding: 0.55rem 0.9rem;
+  padding: 0.55rem 0.95rem;
   border: 1.5px solid var(--line);
   border-radius: 999px;
-  background: #fff;
+  background: var(--paper-2);
   color: var(--ink);
 }
 .chat__input::placeholder {
-  color: #8a9682;
+  color: #9a9482;
 }
 .chat__input:focus-visible {
   outline-offset: 0;
+  border-color: var(--gold-deep);
 }
 
 .chat__send {
-  font-family: var(--font-sans);
+  font-family: var(--display);
   font-weight: 600;
   font-size: 0.9rem;
-  background: var(--danfo);
+  background: var(--gold);
+  color: var(--green-deep);
   border-radius: 999px;
-  padding: 0 1.1rem;
+  padding: 0 1.2rem;
 }
 .chat__send:hover {
-  background: var(--danfo-deep);
+  background: var(--gold-deep);
 }
 .chat__send:disabled {
   opacity: 0.5;
@@ -453,15 +546,15 @@ button {
 .foot {
   margin-top: 3rem;
   padding-top: 1.2rem;
-  border-top: 1.5px solid var(--line);
+  border-top: 2px solid var(--line);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 1rem;
   justify-content: space-between;
-  font-family: var(--font-code);
-  font-size: 0.78rem;
-  color: var(--ink-soft);
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  color: var(--dim);
 }
 
 /* ---- On-air broadcast bar (signature) ---- */
@@ -470,13 +563,14 @@ button {
   left: 0;
   right: 0;
   bottom: 0;
-  background: var(--ink);
-  color: var(--paper);
+  background: linear-gradient(180deg, var(--green), var(--green-deep));
+  color: var(--cream);
   padding: 0.8rem 1.2rem calc(0.8rem + env(safe-area-inset-bottom));
   display: flex;
   gap: 1rem;
   align-items: center;
-  box-shadow: 0 -6px 24px rgba(13, 43, 29, 0.25);
+  box-shadow: 0 -14px 40px rgba(7, 33, 23, 0.4);
+  border-top: 1px solid var(--green-line);
 }
 
 .onair__play {
@@ -484,14 +578,14 @@ button {
   width: 46px;
   height: 46px;
   border-radius: 50%;
-  background: var(--danfo);
+  background: var(--gold);
   display: grid;
   place-items: center;
 }
 .onair__play svg {
-  width: 20px;
-  height: 20px;
-  fill: var(--ink);
+  width: 18px;
+  height: 18px;
+  fill: var(--green-deep);
 }
 
 .onair__body {
@@ -505,25 +599,26 @@ button {
   display: flex;
   align-items: baseline;
   gap: 0.8rem;
-  font-family: var(--font-code);
-  font-size: 0.75rem;
-  margin-bottom: 0.45rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  margin-bottom: 0.5rem;
 }
 
 .onair__live {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  color: var(--danfo);
+  gap: 0.4rem;
+  color: var(--air);
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
 }
 .onair__dot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: var(--kola);
-  animation: blink 1.6s ease-in-out infinite;
+  background: var(--air);
+  box-shadow: 0 0 10px var(--air);
+  animation: blink 1.5s ease-in-out infinite;
 }
 @keyframes blink {
   0%,
@@ -531,7 +626,7 @@ button {
     opacity: 1;
   }
   50% {
-    opacity: 0.25;
+    opacity: 0.3;
   }
 }
 
@@ -539,18 +634,18 @@ button {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--leaf-deep);
+  color: var(--cream);
 }
 .onair__time {
   margin-left: auto;
-  color: var(--leaf-deep);
+  color: var(--mint);
 }
 
 .onair__track {
   position: relative;
-  height: 8px;
+  height: 6px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(240, 232, 210, 0.16);
   cursor: pointer;
 }
 .onair__fill {
@@ -558,20 +653,20 @@ button {
   inset: 0 auto 0 0;
   width: 0%;
   border-radius: 4px;
-  background: var(--danfo);
+  background: var(--gold);
 }
 .onair__marks span {
   position: absolute;
-  top: -2px;
+  top: -3px;
   width: 2px;
   height: 12px;
-  background: rgba(251, 250, 243, 0.55);
+  background: rgba(240, 232, 210, 0.4);
 }
 
 .onair__chips {
   display: flex;
   gap: 0.4rem;
-  margin-top: 0.55rem;
+  margin-top: 0.6rem;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -581,22 +676,26 @@ button {
 
 .chip {
   flex: none;
-  font-family: var(--font-code);
-  font-size: 0.72rem;
-  padding: 0.22rem 0.65rem;
-  border-radius: 999px;
-  border: 1px solid rgba(251, 250, 243, 0.35);
-  color: var(--leaf-deep);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.24rem 0.7rem;
+  border-radius: 4px;
+  border: 1px solid var(--green-line);
+  color: var(--cream);
+  opacity: 0.75;
   white-space: nowrap;
 }
 .chip:hover {
-  border-color: var(--danfo);
-  color: var(--paper);
+  border-color: var(--gold);
+  opacity: 1;
 }
 .chip.is-current {
-  background: var(--danfo);
-  border-color: var(--danfo);
-  color: var(--ink);
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--green-deep);
+  opacity: 1;
 }
 
 @media (max-width: 480px) {
@@ -611,15 +710,24 @@ button {
     padding-left: 0.8rem;
     padding-right: 0.8rem;
   }
+  /* Give the deck's text room on narrow phones — the waveform is decorative. */
+  .playhero__wave {
+    display: none;
+  }
+  .playhero__duration {
+    font-size: 1.05rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .dial span,
-  .onair__dot {
+  .onair__dot,
+  .playhero__wave i {
     animation: none;
   }
   .playhero__btn,
-  .story__chev {
+  .story__chev,
+  .story__headline {
     transition: none;
   }
 }

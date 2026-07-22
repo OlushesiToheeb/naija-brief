@@ -1,28 +1,36 @@
 import type { Metadata, Viewport } from "next";
-import {
-  Bricolage_Grotesque,
-  Newsreader,
-  Spline_Sans_Mono,
-} from "next/font/google";
+import localFont from "next/font/local";
+import { Space_Mono } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegister } from "../components/ServiceWorkerRegister";
 
-const display = Bricolage_Grotesque({
+// Clash Display — headlines & the station ident (self-hosted from Fontshare).
+const display = localFont({
   variable: "--font-display",
-  subsets: ["latin"],
-  weight: ["400", "600", "800"],
+  display: "swap",
+  src: [
+    { path: "./fonts/ClashDisplay-500.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/ClashDisplay-600.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/ClashDisplay-700.woff2", weight: "700", style: "normal" },
+  ],
 });
 
-const body = Newsreader({
+// General Sans — body & UI text.
+const body = localFont({
   variable: "--font-body",
-  subsets: ["latin"],
-  style: ["normal", "italic"],
+  display: "swap",
+  src: [
+    { path: "./fonts/GeneralSans-400.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/GeneralSans-500.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/GeneralSans-600.woff2", weight: "600", style: "normal" },
+  ],
 });
 
-const mono = Spline_Sans_Mono({
+// Space Mono — broadcast data: timecodes, ON AIR, CUE markers, source tags.
+const mono = Space_Mono({
   variable: "--font-mono",
   subsets: ["latin"],
-  weight: ["400", "500"],
+  weight: ["400", "700"],
 });
 
 export const metadata: Metadata = {
@@ -42,7 +50,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0d2b1d",
+  themeColor: "#0c3b2a",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
