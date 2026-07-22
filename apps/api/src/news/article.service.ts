@@ -21,7 +21,7 @@ const ENTITIES: Record<string, string> = {
 /** Non-content structural blocks we drop before pulling paragraph text. */
 const BLOCK_TAGS = ["script", "style", "noscript", "nav", "header", "footer", "aside"];
 
-const FETCH_TIMEOUT_MS = 8_000;
+const FETCH_TIMEOUT_MS = 6_000;
 const MAX_BODY_BYTES = 600_000; // ~600KB cap on the raw HTML we read.
 const MAX_TEXT_CHARS = 8_000; // Cap on the clean text we hand to the LLM.
 const MIN_TEXT_CHARS = 200; // Below this the extraction is treated as a miss.

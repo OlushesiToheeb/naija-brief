@@ -23,6 +23,7 @@ export function useBrief(): BriefState {
   const [errorText, setErrorText] = useState("");
   const [genStep, setGenStep] = useState("Starting…");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const audioPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const stopPoll = useCallback(() => {
     if (pollRef.current) {
@@ -31,11 +32,45 @@ export function useBrief(): BriefState {
     }
   }, []);
 
+  const stopAudioPoll = useCallback(() => {
+    if (audioPollRef.current) {
+      clearInterval(audioPollRef.current);
+      audioPollRef.current = null;
+    }
+  }, []);
+
   const loadBrief = useCallback(async () => {
     try {
       const b = await fetchBrief();
       setBrief(b);
       setView("brief");
+      // The text brief lands before the voice finishes rendering (they're
+      // separate jobs). If audio isn't attached yet, poll for it and swap it in
+      // when it arrives — so the player appears without a manual reload.
+      stopAudioPoll();
+      if (b && !b.audio && !b.audioError && b.isToday) {
+        let tries = 0;
+        audioPollRef.current = setInterval(() => {
+          if (++tries > 45) {
+            stopAudioPoll(); // ~7.5 min ceiling
+            return;
+          }
+          void (async () => {
+            try {
+              const fresh = await fetchBrief();
+              if (
+                fresh.generatedAt === b.generatedAt &&
+                (fresh.audio || fresh.audioError)
+              ) {
+                stopAudioPoll();
+                setBrief(fresh);
+              }
+            } catch {
+              // transient — keep polling
+            }
+          })();
+        }, 10_000);
+      }
     } catch (e) {
       if (e instanceof ApiError && e.status === 404) {
         setView("empty");
@@ -44,7 +79,7 @@ export function useBrief(): BriefState {
       setErrorText(e instanceof ApiError ? e.message : UNREACHABLE);
       setView("error");
     }
-  }, []);
+  }, [stopAudioPoll]);
 
   const poll = useCallback(() => {
     stopPoll();
@@ -88,6 +123,7 @@ export function useBrief(): BriefState {
   }, [loadBrief, stopPoll]);
 
   const generate = useCallback(() => {
+    stopAudioPoll();
     setView("generating");
     setGenStep("Starting…");
     void (async () => {
@@ -100,7 +136,7 @@ export function useBrief(): BriefState {
       }
       poll();
     })();
-  }, [poll]);
+  }, [poll, stopAudioPoll]);
 
   useEffect(() => {
     void (async () => {
@@ -123,7 +159,10 @@ export function useBrief(): BriefState {
       }
       await loadBrief();
     })();
-    return stopPoll;
+    return () => {
+      stopPoll();
+      stopAudioPoll();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -65,7 +65,7 @@ ${this.articlesBlock(section.stories)}
 
 Reply with ONLY a JSON object, no other text:
 {
-  "script": "A 120-180 word spoken script covering the most important stories (up to 8) in this section. Flow naturally from story to story.",
+  "script": "A 90-140 word spoken script covering ONLY the 4-5 most important stories in this section, flowing naturally. Keep it tight — this is read aloud, so brevity matters even though the story list below can be longer.",
   "stories": [
     { "n": <article number>, "headline": "short clear headline", "summary": "1-2 sentence summary of the story" }
   ]

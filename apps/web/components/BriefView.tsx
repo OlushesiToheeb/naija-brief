@@ -77,12 +77,20 @@ export function BriefView({
       )}
 
       {!hasAudio && (
-        <p className="mb-8 rounded-2xl border border-line bg-paper p-4 text-sm leading-relaxed text-taupe">
-          {player.unavailable
-            ? "The audio for this brief couldn't be played. The scripts below are still here."
-            : brief.audioError
-              ? "The voiceover couldn't be generated this time, but the briefing below is fresh."
-              : "This brief was generated without audio. The scripts below are still fresh."}
+        <p className="mb-8 flex items-center gap-2 rounded-2xl border border-line bg-paper p-4 text-sm leading-relaxed text-taupe">
+          {player.unavailable ? (
+            "The audio for this brief couldn't be played. The scripts below are still here."
+          ) : brief.audioError ? (
+            "The voiceover couldn't be generated this time, but the briefing below is fresh."
+          ) : brief.isToday ? (
+            <>
+              <span className="h-2 w-2 flex-none animate-pulse-soft rounded-full bg-coral" />
+              Recording the voice now — the player appears here the moment it&apos;s
+              ready. The scripts below are already fresh.
+            </>
+          ) : (
+            "This brief was generated without audio. The scripts below are still fresh."
+          )}
         </p>
       )}
 
