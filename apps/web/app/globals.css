@@ -722,6 +722,206 @@ button {
   opacity: 1;
 }
 
+/* ---- On-air "Ask" (interrupt) button ---- */
+.onair__ask {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 59, 48, 0.5);
+  color: var(--air);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+}
+.onair__ask svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+.onair__ask:hover {
+  background: var(--air);
+  color: #fff;
+}
+
+/* ---- Voice call-in panel ---- */
+.voiceask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  background: linear-gradient(180deg, var(--green), var(--green-deep));
+  color: var(--cream);
+  border-top: 1px solid var(--green-line);
+  border-radius: 18px 18px 0 0;
+  padding: 1rem 1.2rem calc(1.1rem + env(safe-area-inset-bottom));
+  box-shadow: 0 -18px 50px rgba(7, 33, 23, 0.5);
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.voiceask__head {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  margin-bottom: 0.9rem;
+}
+.voiceask__live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--air);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+.voiceask__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--air);
+  box-shadow: 0 0 10px var(--air);
+  animation: blink 1.5s ease-in-out infinite;
+}
+.voiceask__ctx {
+  color: var(--leaf-deep, #cdd8bf);
+  color: #cdd8bf;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.voiceask__close {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--gold);
+}
+.voiceask__close:hover {
+  color: #fff;
+}
+
+.voiceask__body {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-height: 66px;
+}
+
+.voiceask__mic {
+  flex: none;
+  width: 66px;
+  height: 66px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 59, 48, 0.6);
+  color: var(--cream);
+  display: grid;
+  place-items: center;
+  transition: transform 0.15s ease;
+}
+.voiceask__mic svg {
+  width: 28px;
+  height: 28px;
+  fill: currentColor;
+}
+.voiceask__mic.is-live {
+  border-color: var(--air);
+  color: #fff;
+  animation: micpulse 1.3s ease-in-out infinite;
+}
+.voiceask__mic:disabled {
+  opacity: 0.5;
+}
+@keyframes micpulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(255, 59, 48, 0);
+  }
+}
+
+.voiceask__state {
+  flex: 1;
+  min-width: 0;
+}
+.voiceask__hint {
+  color: #cdd8bf;
+  font-size: 0.98rem;
+  line-height: 1.4;
+}
+.voiceask__hint--mono {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+}
+.voiceask__hint--err {
+  color: #ffb4ac;
+}
+.voiceask__answer {
+  color: var(--cream);
+  font-size: 1.06rem;
+  line-height: 1.45;
+}
+
+.voiceask__foot {
+  margin-top: 0.9rem;
+}
+.voiceask__actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.7rem;
+  flex-wrap: wrap;
+}
+.voiceask__actions .chip {
+  cursor: pointer;
+}
+.chip--go {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--green-deep);
+  opacity: 1;
+}
+
+.voiceask__form {
+  display: flex;
+  gap: 0.5rem;
+}
+.voiceask__input {
+  flex: 1;
+  font-family: var(--body);
+  font-size: 16px;
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--green-line);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--cream);
+}
+.voiceask__input::placeholder {
+  color: #9fb0a2;
+}
+.voiceask__send {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.9rem;
+  background: var(--gold);
+  color: var(--green-deep);
+  border-radius: 999px;
+  padding: 0 1.1rem;
+}
+.voiceask__send:disabled {
+  opacity: 0.5;
+}
+
 @media (max-width: 480px) {
   .story__toggle {
     flex-wrap: wrap;
@@ -746,11 +946,12 @@ button {
 @media (prefers-reduced-motion: reduce) {
   .dial span,
   .onair__dot,
-  .playhero__wave i {
+  .playhero__wave i,
+  .voiceask__dot,
+  .voiceask__mic.is-live {
     animation: none;
   }
   .playhero__btn,
-  .story__chev,
   .story__headline {
     transition: none;
   }

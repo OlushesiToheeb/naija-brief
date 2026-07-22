@@ -88,3 +88,16 @@ export interface ChatRequest {
 export interface ChatResponse {
   reply: string;
 }
+
+/** A live "interrupt and ask" question about whatever segment is playing. */
+export interface AskRequest {
+  date: string;
+  /** The playing segment: "intro", a section id, or "outro". */
+  segmentId: string;
+  question: string;
+  messages?: ChatMessage[];
+}
+
+export interface AskResponse {
+  reply: string;
+}

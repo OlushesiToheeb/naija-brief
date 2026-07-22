@@ -58,4 +58,11 @@ describe("Naija Brief API (e2e)", () => {
       .send({ date: "bad", storyId: "x", messages: [] })
       .expect(400);
   });
+
+  it("POST /api/ask with an empty question -> 400", () => {
+    return request(app.getHttpServer())
+      .post("/api/ask")
+      .send({ date: "2026-07-22", segmentId: "markets", question: "" })
+      .expect(400);
+  });
 });

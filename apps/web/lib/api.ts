@@ -67,3 +67,19 @@ export async function askAboutStory(
   const data = await json<{ reply: string }>(res);
   return data.reply;
 }
+
+/** Live "interrupt and ask" about the segment currently playing. */
+export async function askSegment(
+  date: string,
+  segmentId: string,
+  question: string,
+  messages: ChatMessage[] = [],
+): Promise<string> {
+  const res = await fetch(`${API_BASE}/api/ask`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ date, segmentId, question, messages }),
+  });
+  const data = await json<{ reply: string }>(res);
+  return data.reply;
+}

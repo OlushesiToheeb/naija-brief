@@ -1,12 +1,19 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { Brief } from "@naija-brief/shared";
 import { lagosTime } from "../lib/format";
 import { useAudioPlayer } from "../lib/useAudioPlayer";
 import { PlayHero } from "./PlayHero";
 import { OnAirBar } from "./OnAirBar";
 import { SectionBlock } from "./SectionBlock";
+import { VoiceAsk } from "./VoiceAsk";
+
+function segmentLabel(brief: Brief, id: string): string {
+  if (id === "intro") return "the intro";
+  if (id === "outro") return "the sign-off";
+  return brief.sections.find((s) => s.id === id)?.title ?? "the briefing";
+}
 
 export function BriefView({
   brief,
@@ -17,6 +24,17 @@ export function BriefView({
 }) {
   const player = useAudioPlayer(brief);
   const { pause, seekTo, play } = player;
+
+  // The live "interrupt and ask" panel — freezes the segment that was playing.
+  const [asking, setAsking] = useState<string | null>(null);
+  const openAsk = () => {
+    pause();
+    setAsking(player.currentMarkerId ?? "intro");
+  };
+  const closeAsk = () => {
+    setAsking(null);
+    play(); // resume the briefing from where it paused
+  };
 
   // Stop playback when leaving the brief (e.g. a regenerate). pause is stable.
   useEffect(() => () => pause(), [pause]);
@@ -87,7 +105,18 @@ export function BriefView({
         </button>
       </footer>
 
-      {hasAudio && player.started && <OnAirBar brief={brief} player={player} />}
+      {hasAudio && player.started && !asking && (
+        <OnAirBar brief={brief} player={player} onAsk={openAsk} />
+      )}
+
+      {asking && (
+        <VoiceAsk
+          date={brief.date}
+          segmentId={asking}
+          segmentLabel={segmentLabel(brief, asking)}
+          onClose={closeAsk}
+        />
+      )}
     </div>
   );
 }

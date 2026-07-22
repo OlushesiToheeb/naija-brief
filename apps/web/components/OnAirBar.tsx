@@ -14,9 +14,11 @@ function segmentTitle(brief: Brief, id: string): string {
 export function OnAirBar({
   brief,
   player,
+  onAsk,
 }: {
   brief: Brief;
   player: AudioPlayer;
+  onAsk: () => void;
 }) {
   const duration = player.duration || brief.audio?.durationSec || 1;
   const markers = brief.audio?.markers ?? [];
@@ -113,6 +115,24 @@ export function OnAirBar({
           ))}
         </div>
       </div>
+
+      <button
+        className="onair__ask"
+        onClick={onAsk}
+        aria-label="Interrupt and ask a question"
+        title="Ask about what's playing"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3z" />
+          <path
+            d="M19 11a7 7 0 0 1-14 0M12 18v3"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          />
+        </svg>
+        <span>Ask</span>
+      </button>
     </div>
   );
 }

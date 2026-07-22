@@ -20,8 +20,9 @@ describe("NewsService.fetchAllSections", () => {
   it("dedupes by normalized title and drops stories older than the cutoff", async () => {
     jest.spyOn(parser, "parseURL").mockResolvedValue({
       items: [
+        // The newer of the two title variants (0h) should be the one kept.
         { title: "Big Story Today!", link: "a", isoDate: daysAgo(0), content: "x" },
-        { title: "big  story today", link: "b", isoDate: daysAgo(0), content: "y" },
+        { title: "big  story today", link: "b", isoDate: daysAgo(0.25), content: "y" },
         { title: "Ancient News", link: "c", isoDate: daysAgo(3), content: "z" },
       ],
     });
@@ -30,7 +31,7 @@ describe("NewsService.fetchAllSections", () => {
     const politics = sections.find((s) => s.id === "politics")!;
 
     const titles = politics.stories.map((s) => s.title);
-    // The two title variants collapse to one; the 3-day-old story is dropped.
+    // The two title variants collapse to one (the newer), the 3-day-old is dropped.
     expect(titles).toContain("Big Story Today!");
     expect(titles).not.toContain("Ancient News");
     expect(titles.filter((t) => /big story today/i.test(t))).toHaveLength(1);
