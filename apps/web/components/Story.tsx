@@ -18,16 +18,12 @@ export function Story({ story, date }: { story: BriefStory; date: string }) {
       >
         <span className="story__source">{story.source}</span>
         <span className="story__headline">{story.headline}</span>
-        <svg
-          className="story__chev"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          aria-hidden="true"
-        >
-          <path d="M12 15.5 4.5 8l1.4-1.4L12 12.7l6.1-6.1L19.5 8z" />
-        </svg>
+        <span className="story__ask" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M4 4h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H9l-4 4v-4H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" />
+          </svg>
+          {open ? "Close" : "Ask"}
+        </span>
       </button>
       {/* Rendered even when collapsed (hidden via CSS) so StoryChat stays
           mounted and its conversation survives collapsing and re-expanding. */}
