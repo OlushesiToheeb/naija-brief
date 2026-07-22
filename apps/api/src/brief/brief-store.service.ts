@@ -31,6 +31,7 @@ export interface BriefInput {
   sectionsFailed: { section: string; error: string }[];
   audio: { durationSec: number; markers: AudioMarker[] } | null;
   audioBuffer: Buffer | null;
+  audioMime: string | null;
   audioError: string | null;
 }
 
@@ -59,7 +60,7 @@ export class BriefStore {
     brief.audioError = input.audioError;
     brief.audioDurationSec = input.audio ? input.audio.durationSec : null;
     brief.audioMarkers = input.audio ? input.audio.markers : null;
-    brief.audioMime = input.audioBuffer ? "audio/wav" : null;
+    brief.audioMime = input.audioBuffer ? (input.audioMime ?? "audio/wav") : null;
     brief.audioData = input.audioBuffer;
 
     brief.sections = input.sections.map((s, si) => {
@@ -159,14 +160,15 @@ export class BriefStore {
     return rows.map((r) => r.date);
   }
 
-  /** The raw WAV bytes for a date, or null. audioData is select:false, so ask for it. */
-  async findAudio(date: string): Promise<Buffer | null> {
+  /** The encoded audio bytes + mime for a date, or null. audioData is select:false. */
+  async findAudio(date: string): Promise<{ data: Buffer; mime: string } | null> {
     const row = await this.briefs.findOne({
       where: { date },
-      select: { id: true, audioData: true },
+      select: { id: true, audioData: true, audioMime: true },
       // Keep this to the audio blob only — skip the eager section/story joins.
       loadEagerRelations: false,
     });
-    return row?.audioData ?? null;
+    if (!row?.audioData) return null;
+    return { data: row.audioData, mime: row.audioMime ?? "audio/mpeg" };
   }
 }

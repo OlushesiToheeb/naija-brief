@@ -13,6 +13,8 @@ interface ChatOptions {
   model?: string;
   temperature?: number;
   maxTokens?: number;
+  /** Reasoning effort: "none" disables it (cheaper, avoids truncation). */
+  reasoningEffort?: string;
 }
 
 interface FatalError extends Error {
@@ -46,12 +48,23 @@ export class OpenRouterService {
       this.config.get<string>("OPENROUTER_MODEL") ||
       "deepseek/deepseek-v4-flash";
 
-    const body = JSON.stringify({
+    const payload: Record<string, unknown> = {
       model,
       messages,
       temperature: opts.temperature ?? 0.4,
       max_tokens: opts.maxTokens ?? 1400,
-    });
+    };
+    // Reasoning models (e.g. deepseek-v4-flash) spend completion tokens thinking.
+    // For extractive summarization/QA that's wasted spend and risks truncating
+    // the JSON, so default to disabling it. Configurable via LLM_REASONING_EFFORT.
+    const effort =
+      opts.reasoningEffort ??
+      this.config.get<string>("LLM_REASONING_EFFORT") ??
+      "none";
+    if (effort && effort !== "default") {
+      payload.reasoning = { effort };
+    }
+    const body = JSON.stringify(payload);
 
     let lastError: Error | undefined;
     for (let attempt = 0; attempt < 3; attempt++) {

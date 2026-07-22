@@ -57,7 +57,12 @@ describe("BriefService.generateBrief", () => {
     summarize.summarizeSection
       .mockRejectedValueOnce(new Error("bad JSON")) // politics fails
       .mockResolvedValueOnce({ id: "tech", title: "Tech", script: "s", stories: [{ id: "tech-1" }] });
-    tts.synthesize.mockResolvedValue({ wav: Buffer.alloc(4), durationSec: 10, markers: [] });
+    tts.synthesize.mockResolvedValue({
+      audio: Buffer.alloc(4),
+      mime: "audio/mpeg",
+      durationSec: 10,
+      markers: [],
+    });
 
     await service.generateBrief();
 
@@ -99,7 +104,8 @@ describe("BriefService.generateBrief", () => {
     });
     const markers = [{ id: "intro", startSec: 0 }];
     tts.synthesize.mockResolvedValue({
-      wav: Buffer.from("RIFF"),
+      audio: Buffer.from("ID3"),
+      mime: "audio/mpeg",
       durationSec: 42.6,
       markers,
     });
@@ -109,5 +115,6 @@ describe("BriefService.generateBrief", () => {
     const saved = store.save.mock.calls[0][0];
     expect(saved.audio).toEqual({ durationSec: 43, markers });
     expect(saved.audioBuffer).toBeInstanceOf(Buffer);
+    expect(saved.audioMime).toBe("audio/mpeg");
   });
 });

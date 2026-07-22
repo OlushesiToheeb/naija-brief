@@ -1,5 +1,7 @@
+import { spawn } from "node:child_process";
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import ffmpegPath from "ffmpeg-static";
 import type { AudioMarker } from "@naija-brief/shared";
 
 const TTS_MODEL_ID = "onnx-community/Kokoro-82M-v1.0-ONNX";
@@ -13,7 +15,9 @@ export interface BriefSegment {
 }
 
 export interface SynthesisResult {
-  wav: Buffer;
+  /** Encoded audio (MP3 by default; WAV if compression is off or unavailable). */
+  audio: Buffer;
+  mime: string;
   durationSec: number;
   markers: AudioMarker[];
 }
@@ -144,7 +148,86 @@ export class TtsService {
     }
 
     const wav = this.encodeWav(pieces, totalSamples, sampleRate);
-    return { wav, durationSec: totalSamples / sampleRate, markers };
+    const { data, mime } = await this.compress(wav);
+    return { audio: data, mime, durationSec: totalSamples / sampleRate, markers };
+  }
+
+  /**
+   * Compresses the raw WAV to MP3 (or Opus) — roughly 8-12x smaller — so briefs
+   * are stored and streamed cheaply. Falls back to the WAV if ffmpeg is missing
+   * or the encode fails, so a brief never loses its audio.
+   */
+  private async compress(wav: Buffer): Promise<{ data: Buffer; mime: string }> {
+    const format = (this.config.get<string>("AUDIO_FORMAT") || "mp3").toLowerCase();
+    const bitrate = this.config.get<string>("AUDIO_BITRATE") || "64k";
+    if (format === "wav" || !ffmpegPath) {
+      return { data: wav, mime: "audio/wav" };
+    }
+
+    const spec =
+      format === "opus"
+        ? { args: ["-c:a", "libopus", "-b:a", bitrate, "-f", "ogg"], mime: "audio/ogg" }
+        : { args: ["-c:a", "libmp3lame", "-b:a", bitrate, "-f", "mp3"], mime: "audio/mpeg" };
+
+    try {
+      const data = await this.runFfmpeg(wav, ["-ac", "1", ...spec.args]);
+      const saved = Math.round((1 - data.length / wav.length) * 100);
+      this.logger.log(
+        `Audio ${format} ${bitrate}: ${(wav.length / 1e6).toFixed(1)}MB -> ${(data.length / 1e6).toFixed(1)}MB (${saved}% smaller)`,
+      );
+      return { data, mime: spec.mime };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`Audio compression failed, keeping WAV: ${msg}`);
+      return { data: wav, mime: "audio/wav" };
+    }
+  }
+
+  private runFfmpeg(input: Buffer, encodeArgs: string[]): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      const proc = spawn(ffmpegPath as string, [
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-i",
+        "pipe:0",
+        ...encodeArgs,
+        "pipe:1",
+      ]);
+      const out: Buffer[] = [];
+      const err: Buffer[] = [];
+      // Insurance against a hung encode wedging generation forever.
+      const timer = setTimeout(() => {
+        proc.kill("SIGKILL");
+        reject(new Error("ffmpeg timed out"));
+      }, 60_000);
+      const done = (fn: () => void) => {
+        clearTimeout(timer);
+        fn();
+      };
+      proc.stdout.on("data", (d: Buffer) => out.push(d));
+      proc.stderr.on("data", (d: Buffer) => err.push(d));
+      // Ignore stream errors (e.g. stdin EPIPE if ffmpeg exits early) — the
+      // 'error'/'close' events below decide success or the WAV fallback.
+      proc.stdin.on("error", () => {});
+      proc.stdout.on("error", () => {});
+      proc.stderr.on("error", () => {});
+      proc.on("error", (e) => done(() => reject(e)));
+      proc.on("close", (code) =>
+        done(() =>
+          code === 0
+            ? resolve(Buffer.concat(out))
+            : reject(
+                new Error(
+                  Buffer.concat(err).toString().slice(0, 300) ||
+                    `ffmpeg exited with code ${code}`,
+                ),
+              ),
+        ),
+      );
+      proc.stdin.write(input);
+      proc.stdin.end();
+    });
   }
 
   private encodeWav(

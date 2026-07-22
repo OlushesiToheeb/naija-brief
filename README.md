@@ -100,9 +100,28 @@ LLM grounded in that article's text
 | `MOCK_LLM=1` | Build the brief from raw headlines without calling OpenRouter (no key needed) |
 | `SKIP_TTS=1` | Skip audio generation (text-only brief, much faster) |
 | `OPENROUTER_MODEL` | Any OpenRouter chat model id |
+| `LLM_REASONING_EFFORT` | `none` (default) disables reasoning tokens — cheaper, avoids JSON truncation; `low`/`medium`/`default` to re-enable |
+| `AUDIO_FORMAT` | `mp3` (default, universal), `opus` (smaller), or `wav` (uncompressed) |
+| `AUDIO_BITRATE` | Audio bitrate, e.g. `64k` |
 | `TTS_VOICE` | Kokoro voice: `af_heart`, `af_bella`, `bf_emma`, … |
 | `BRIEF_CRON` | When the daily brief generates (Africa/Lagos) |
 | `DB_SYNC=0` | Disable TypeORM schema auto-sync (use migrations in production) |
+
+## Cost & caching
+
+The app is built to stay cheap:
+
+- **Shared brief.** The daily brief is generated once and served to everyone —
+  LLM cost is fixed per day, not per user. Only the per-story chat scales with use.
+- **Compressed audio.** Briefs are stored and streamed as MP3 (~64 kbps mono),
+  roughly 8–12× smaller than raw WAV — far less DB storage and egress. Encoding
+  uses a bundled `ffmpeg-static`; if it fails, the app keeps the WAV.
+- **No reasoning-token waste.** Summarization/chat run with reasoning disabled
+  (`LLM_REASONING_EFFORT=none`) — the work is extractive, so reasoning tokens are
+  pure cost and also risk truncating the JSON.
+- **Automatic prompt caching.** DeepSeek caches identical prompt prefixes
+  (cache reads at 0.1× input price). The stable editor/system prompt is sent
+  first on every call, so the 6 section calls and multi-turn chats reuse it for free.
 
 ## Notes
 

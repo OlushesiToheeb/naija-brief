@@ -162,6 +162,7 @@ export class BriefService implements OnModuleInit, OnModuleDestroy {
 
     let audio: { durationSec: number; markers: AudioMarker[] } | null = null;
     let audioBuffer: Buffer | null = null;
+    let audioMime: string | null = null;
     let audioError: string | null = null;
 
     if (!this.tts.skip) {
@@ -172,7 +173,8 @@ export class BriefService implements OnModuleInit, OnModuleDestroy {
           { id: "outro", text: outro },
         ];
         const result = await this.tts.synthesize(segments, onProgress);
-        audioBuffer = result.wav;
+        audioBuffer = result.audio;
+        audioMime = result.mime;
         audio = {
           durationSec: Math.round(result.durationSec),
           markers: result.markers,
@@ -197,6 +199,7 @@ export class BriefService implements OnModuleInit, OnModuleDestroy {
       sectionsFailed,
       audio,
       audioBuffer,
+      audioMime,
       audioError,
     });
 
