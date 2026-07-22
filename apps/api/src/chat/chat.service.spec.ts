@@ -1,7 +1,7 @@
 import { NotFoundException } from "@nestjs/common";
 import { ChatService } from "./chat.service";
 import { OpenRouterService } from "../llm/openrouter.service";
-import { BriefStore } from "./brief-store.service";
+import { BriefStore } from "../brief/brief-store.service";
 import type { Brief } from "@naija-brief/shared";
 
 function briefWithStory(): Brief {

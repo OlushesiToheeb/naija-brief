@@ -1,31 +1,25 @@
 import {
   BadRequestException,
   Controller,
-  ForbiddenException,
   Get,
   Headers,
-  HttpCode,
   NotFoundException,
   Param,
-  Post,
   Query,
   Res,
 } from "@nestjs/common";
 import type { Response } from "express";
-import type { Brief, GenerationStatus } from "@naija-brief/shared";
-import { BriefService } from "./brief.service";
+import type { Brief } from "@naija-brief/shared";
 import { BriefStore } from "./brief-store.service";
 import { todayKey } from "./date.util";
-import { isAllowedOrigin } from "../common/origin";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+// Read-only brief endpoints. Generation (/generate) and its status (/status)
+// live in JobsController, which owns the durable job queue.
 @Controller()
 export class BriefController {
-  constructor(
-    private readonly briefService: BriefService,
-    private readonly store: BriefStore,
-  ) {}
+  constructor(private readonly store: BriefStore) {}
 
   @Get("brief")
   async getBrief(@Query("date") date?: string): Promise<Brief> {
@@ -50,29 +44,6 @@ export class BriefController {
     return { dates: await this.store.listDates() };
   }
 
-  @Post("generate")
-  @HttpCode(202)
-  generate(
-    @Headers("origin") origin?: string,
-  ): { status: GenerationStatus["status"] } {
-    // Generation costs money (LLM) and CPU (TTS). A cross-site page can send a
-    // no-preflight POST here, so reject any disallowed browser Origin — CORS
-    // alone only hides the response, it doesn't stop the side effect.
-    if (!isAllowedOrigin(origin)) {
-      throw new ForbiddenException("Cross-origin generation is not allowed.");
-    }
-    const started = this.briefService.startGeneration();
-    if (!started) {
-      throw new BadRequestException("A brief is already being generated.");
-    }
-    return { status: "running" };
-  }
-
-  @Get("status")
-  getStatus(): GenerationStatus {
-    return this.briefService.getStatus();
-  }
-
   @Get("audio/:date")
   async getAudio(
     @Param("date") date: string,
@@ -94,11 +65,27 @@ export class BriefController {
     // seeking, and it's what Accept-Ranges promises.
     const match = range && /^bytes=(\d*)-(\d*)$/.exec(range);
     if (match) {
-      let start = match[1] ? Number(match[1]) : 0;
-      let end = match[2] ? Number(match[2]) : total - 1;
-      if (Number.isNaN(start)) start = 0;
-      if (Number.isNaN(end) || end >= total) end = total - 1;
-      if (start > end || start >= total) {
+      const hasStart = match[1] !== "";
+      const hasEnd = match[2] !== "";
+      let start: number;
+      let end = total - 1;
+      if (!hasStart) {
+        // Suffix range "bytes=-N": the final N bytes (N=0 is unsatisfiable).
+        const n = hasEnd ? Number(match[2]) : 0;
+        start = n > 0 ? Math.max(0, total - n) : total;
+      } else {
+        start = Number(match[1]);
+        if (hasEnd) {
+          const e = Number(match[2]);
+          if (e < end) end = e;
+        }
+      }
+      if (
+        Number.isNaN(start) ||
+        Number.isNaN(end) ||
+        start > end ||
+        start >= total
+      ) {
         res.status(416).setHeader("Content-Range", `bytes */${total}`).end();
         return;
       }

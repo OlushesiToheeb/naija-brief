@@ -95,6 +95,36 @@ export class BriefStore {
     });
   }
 
+  /**
+   * Attach (or clear) the audio for an already-saved brief. A targeted UPDATE of
+   * only the audio columns — never the delete+insert save() path — so a TTS job
+   * can add audio without disturbing the sections/stories tree. `audioData` is
+   * select:false but stays writable here. Returns false if no brief exists for
+   * the date.
+   */
+  async updateAudio(
+    date: string,
+    audio: {
+      buffer: Buffer | null;
+      mime: string | null;
+      durationSec: number | null;
+      markers: AudioMarker[] | null;
+      error: string | null;
+    },
+  ): Promise<boolean> {
+    const res = await this.briefs.update(
+      { date },
+      {
+        audioData: audio.buffer,
+        audioMime: audio.mime,
+        audioDurationSec: audio.durationSec,
+        audioMarkers: audio.markers,
+        audioError: audio.error,
+      },
+    );
+    return (res.affected ?? 0) > 0;
+  }
+
   private toDto(entity: BriefEntity): Brief {
     const sections = [...entity.sections]
       .sort((a, b) => a.position - b.position)

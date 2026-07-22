@@ -11,6 +11,14 @@ async function bootstrap() {
     new ValidationPipe({ whitelist: true, transform: true }),
   );
 
+  // Fire onModuleDestroy on SIGTERM/SIGINT so the cron, the safety timer and any
+  // in-flight job drain cleanly instead of being hard-killed mid-write.
+  app.enableShutdownHooks();
+
+  // Behind a reverse proxy, trust the first hop so the throttler counts the real
+  // client IP (from X-Forwarded-For) rather than the proxy's.
+  app.getHttpAdapter().getInstance().set("trust proxy", 1);
+
   // Allow the Next.js web app (any localhost port in dev) to call the API.
   app.enableCors({ origin: corsOrigins() });
 

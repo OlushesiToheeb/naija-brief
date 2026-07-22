@@ -1,23 +1,18 @@
 import { BadRequestException, NotFoundException } from "@nestjs/common";
 import { BriefController } from "./brief.controller";
-import { BriefService } from "./brief.service";
 import { BriefStore } from "./brief-store.service";
 import type { Brief } from "@naija-brief/shared";
 
 const sampleBrief = { date: "2026-07-22", sections: [] } as unknown as Brief;
 
 function make() {
-  const briefService = {
-    startGeneration: jest.fn(),
-    getStatus: jest.fn(),
-  } as unknown as jest.Mocked<BriefService>;
   const store = {
     findByDate: jest.fn(),
     findLatest: jest.fn(),
     listDates: jest.fn(),
     findAudio: jest.fn(),
   } as unknown as jest.Mocked<BriefStore>;
-  return { controller: new BriefController(briefService, store), briefService, store };
+  return { controller: new BriefController(store), store };
 }
 
 interface FakeRes {
@@ -78,15 +73,6 @@ describe("BriefController", () => {
     expect(store.findLatest).not.toHaveBeenCalled();
   });
 
-  it("starts a generation, or 400s when one is already running", () => {
-    const { controller, briefService } = make();
-    briefService.startGeneration.mockReturnValue(true);
-    expect(controller.generate()).toEqual({ status: "running" });
-
-    briefService.startGeneration.mockReturnValue(false);
-    expect(() => controller.generate()).toThrow(BadRequestException);
-  });
-
   describe("getAudio", () => {
     const audio = { data: Buffer.alloc(2048, 7), mime: "audio/mpeg" };
 
@@ -111,6 +97,17 @@ describe("BriefController", () => {
       expect(res.headers["content-range"]).toBe("bytes 0-1023/2048");
       expect(res.headers["content-length"]).toBe(1024);
       expect(res.body?.length).toBe(1024);
+    });
+
+    it("answers a suffix range (bytes=-N) with the final N bytes", async () => {
+      const { controller, store } = make();
+      store.findAudio.mockResolvedValue(audio);
+      const res = mockRes();
+      await controller.getAudio("2026-07-22", "bytes=-100", res as never);
+      expect(res.statusCode).toBe(206);
+      expect(res.headers["content-range"]).toBe("bytes 1948-2047/2048");
+      expect(res.headers["content-length"]).toBe(100);
+      expect(res.body?.length).toBe(100);
     });
 
     it("returns 416 for an unsatisfiable range", async () => {

@@ -19,6 +19,6 @@ import { BriefStore } from "./brief-store.service";
   ],
   controllers: [BriefController],
   providers: [BriefService, BriefStore],
-  exports: [BriefStore],
+  exports: [BriefStore, BriefService],
 })
 export class BriefModule {}

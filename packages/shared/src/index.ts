@@ -74,6 +74,12 @@ export interface GenerationStatus {
   startedAt: string | null;
 }
 
+/** The two kinds of durable background job the API runs. */
+export type JobKind = "generate" | "tts";
+
+/** Lifecycle of a persisted background job (distinct from the UI-facing JobStatus). */
+export type JobRecordStatus = "queued" | "running" | "succeeded" | "failed";
+
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;

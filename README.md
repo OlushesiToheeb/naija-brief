@@ -15,7 +15,7 @@ A TypeScript monorepo (npm workspaces):
 | --- | --- |
 | **Frontend** | Next.js 16 (App Router, React 19) as an installable **PWA** |
 | **Backend** | NestJS 11 REST API |
-| **Storage** | PostgreSQL via TypeORM (briefs, sections, stories, audio as `bytea`) |
+| **Storage** | PostgreSQL via TypeORM + migrations (briefs, sections, stories, audio as `bytea`, durable jobs) |
 | **LLM** | OpenRouter (default `deepseek/deepseek-v4-flash`) — summaries + drill-down chat |
 | **Voice** | `kokoro-js` — Kokoro-82M ONNX TTS, runs locally |
 | **Schedule** | `@nestjs/schedule` cron — a fresh brief every morning |
@@ -38,9 +38,16 @@ packages/
 
 ```bash
 npm install
-createdb naija_brief            # or set DATABASE_URL / PG* vars in .env
-cp .env.example .env            # then paste your OPENROUTER_API_KEY
+createdb naija_brief                  # or set DATABASE_URL / PG* vars in .env
+cp .env.example .env                  # then paste your OPENROUTER_API_KEY
+npm run migration:run -w apps/api     # create the schema (briefs, sections, stories, jobs)
 ```
+
+> **Already have a database from an earlier build?** It was created by TypeORM
+> auto-sync, which is now off by default. Give it the new `generation_jobs` table
+> either by starting the API once with `DB_SYNC=1` (additive — leaves your data),
+> or, since briefs are regenerated daily, reset for a clean migration baseline:
+> `dropdb naija_brief && createdb naija_brief && npm run migration:run -w apps/api`.
 
 Key `.env` values (see `.env.example` for all):
 
@@ -92,6 +99,9 @@ LLM grounded in that article's text
 | `npm run build` | Production build of both apps |
 | `npm test` | Unit tests (API Jest + web Vitest) |
 | `npm run test:e2e` | API end-to-end tests (needs Postgres) |
+| `npm run migration:run -w apps/api` | Apply pending DB migrations |
+| `npm run migration:generate -w apps/api` | Generate a migration from entity changes (diff vs an empty DB) |
+| `npm run migration:revert -w apps/api` | Roll back the last migration |
 
 ## Useful env flags
 
@@ -105,7 +115,8 @@ LLM grounded in that article's text
 | `AUDIO_BITRATE` | Audio bitrate, e.g. `64k` |
 | `TTS_VOICE` | Kokoro voice: `af_heart`, `af_bella`, `bf_emma`, … |
 | `BRIEF_CRON` | When the daily brief generates (Africa/Lagos) |
-| `DB_SYNC=0` | Disable TypeORM schema auto-sync (use migrations in production) |
+| `DB_SYNC=1` | Opt in to TypeORM schema auto-sync for throwaway local iteration (off by default — use migrations) |
+| `THROTTLE_LIMIT` / `THROTTLE_TTL` | Global per-IP rate limit (default 120 req / 60 s) |
 
 ## Cost & caching
 
@@ -123,10 +134,23 @@ The app is built to stay cheap:
   (cache reads at 0.1× input price). The stable editor/system prompt is sent
   first on every call, so the 6 section calls and multi-turn chats reuse it for free.
 
-## Notes
+## Production hardening
 
-- TypeORM `synchronize` is on by default for a smooth first run against a dev
-  database. Switch to migrations (`DB_SYNC=0`) before running anything you can't
-  afford to drop.
+- **Migrations, not auto-sync.** The schema is owned by TypeORM migrations
+  (`npm run migration:run`); auto-sync is off unless you set `DB_SYNC=1`. On
+  boot the API checks `GET /api/health` with a real `SELECT 1`, returning 503 if
+  the database is unreachable.
+- **Durable background jobs (Postgres, no Redis).** Generation runs as a
+  persisted job in `generation_jobs`: a `generate` job fetches + summarizes +
+  saves the text brief, then chains a separate `tts` job that voices it — so a
+  TTS failure retries **only** the audio, never re-paying for the LLM. Jobs have
+  bounded retries with exponential backoff, run one-at-a-time (single-flight),
+  and any job a crash left mid-flight is recovered on the next boot. `POST
+  /api/generate` enqueues; `GET /api/status` reflects the latest job.
+- **Rate limiting.** Per-IP throttling protects the paid endpoints (`/chat`,
+  `/ask`, `/generate`); `/health` and `/status` are exempt so status polling is
+  never blocked. Behind a proxy the app trusts the first hop for real client IPs.
+- **Graceful shutdown.** SIGTERM/SIGINT drain the cron, the retry sweep and any
+  in-flight job cleanly; whatever doesn't finish in time is requeued on restart.
 - The daily 6am job only fires while the API process is running. For a real
   daily habit, run the API on an always-on host.

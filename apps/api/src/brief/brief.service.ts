@@ -1,8 +1,5 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
-import { SchedulerRegistry } from "@nestjs/schedule";
-import { ConfigService } from "@nestjs/config";
-import { CronJob } from "cron";
-import type { AudioMarker, Brief, GenerationStatus } from "@naija-brief/shared";
+import { Injectable, Logger } from "@nestjs/common";
+import type { Brief } from "@naija-brief/shared";
 import { NewsService } from "../news/news.service";
 import {
   SummarizeService,
@@ -12,97 +9,31 @@ import { TtsService, type BriefSegment } from "../tts/tts.service";
 import { BriefStore } from "./brief-store.service";
 import { formatDateLabel, todayKey } from "./date.util";
 
+// The generation pipeline. It is split into two independently-runnable halves so
+// the durable job queue can retry the expensive-to-lose audio step on its own:
+//   generateText()      → fetch + summarize + save the TEXT brief (no audio)
+//   synthesizeForDate()  → voice that brief and attach the audio
+// A TTS failure therefore never re-pays for the LLM work. Scheduling, status and
+// retries live in JobsService; this class is stateless pipeline logic.
 @Injectable()
-export class BriefService implements OnModuleInit, OnModuleDestroy {
+export class BriefService {
   private readonly logger = new Logger(BriefService.name);
-  private job: GenerationStatus = {
-    status: "idle",
-    step: "",
-    error: "",
-    startedAt: null,
-  };
 
   constructor(
     private readonly news: NewsService,
     private readonly summarize: SummarizeService,
     private readonly tts: TtsService,
     private readonly store: BriefStore,
-    private readonly config: ConfigService,
-    private readonly scheduler: SchedulerRegistry,
   ) {}
 
-  // The cron expression is registered here — not via the @Cron decorator —
-  // because decorator arguments are evaluated at import time, before
-  // ConfigModule has loaded .env, which would silently ignore BRIEF_CRON.
-  onModuleInit(): void {
-    const expr = this.config.get<string>("BRIEF_CRON") || "0 6 * * *";
-    try {
-      const job = CronJob.from({
-        cronTime: expr,
-        onTick: () => {
-          this.logger.log("Daily cron fired");
-          this.startGeneration();
-        },
-        timeZone: "Africa/Lagos",
-        start: true,
-      });
-      this.scheduler.addCronJob("daily-brief", job as never);
-      this.logger.log(`Daily brief scheduled: "${expr}" Africa/Lagos`);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      this.logger.error(
-        `Invalid BRIEF_CRON "${expr}" — daily brief not scheduled: ${message}`,
-      );
-    }
-  }
-
-  // Stop the timer on shutdown so it doesn't leak (e.g. in tests).
-  onModuleDestroy(): void {
-    try {
-      this.scheduler.getCronJob("daily-brief").stop();
-    } catch {
-      // Job was never registered (invalid cron) — nothing to stop.
-    }
-  }
-
-  getStatus(): GenerationStatus {
-    return { ...this.job };
-  }
-
-  /** Kicks off a generation if one isn't already running. Returns false if busy. */
-  startGeneration(): boolean {
-    if (this.job.status === "running") return false;
-    this.job = {
-      status: "running",
-      step: "Starting",
-      error: "",
-      startedAt: new Date().toISOString(),
-    };
-    void this.runGeneration();
-    return true;
-  }
-
-  private async runGeneration(): Promise<void> {
-    try {
-      await this.generateBrief((step) => {
-        this.job.step = step;
-        this.logger.log(step);
-      });
-      this.job.status = "done";
-      this.job.step = "Brief ready";
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      this.logger.error(`generation failed: ${message}`);
-      this.job.status = "error";
-      this.job.error = message;
-    }
-  }
-
   /**
-   * Full pipeline: fetch feeds -> summarize per section (isolated) -> intro/outro
-   * -> synthesize audio (failure-tolerant) -> persist.
+   * Fetch feeds → summarize per section (isolated) → intro/outro → persist the
+   * text brief with no audio yet. Returns the date so a follow-on TTS job can
+   * find it. Throws only on total failure (no stories, or every section failed).
    */
-  async generateBrief(onProgress: (step: string) => void = () => {}): Promise<Brief> {
+  async generateText(
+    onProgress: (step: string) => void = () => {},
+  ): Promise<{ date: string }> {
     const date = todayKey();
     const dateLabel = formatDateLabel();
 
@@ -128,12 +59,7 @@ export class BriefService implements OnModuleInit, OnModuleDestroy {
           const message = err instanceof Error ? err.message : String(err);
           this.logger.warn(`section "${section.id}" failed: ${message}`);
           sectionsFailed.push({ section: section.title, error: message });
-          return {
-            id: section.id,
-            title: section.title,
-            script: "",
-            stories: [],
-          };
+          return { id: section.id, title: section.title, script: "", stories: [] };
         }
       }),
     );
@@ -160,34 +86,6 @@ export class BriefService implements OnModuleInit, OnModuleDestroy {
       );
     }
 
-    let audio: { durationSec: number; markers: AudioMarker[] } | null = null;
-    let audioBuffer: Buffer | null = null;
-    let audioMime: string | null = null;
-    let audioError: string | null = null;
-
-    if (!this.tts.skip) {
-      try {
-        const segments: BriefSegment[] = [
-          { id: "intro", text: intro },
-          ...sections.map((s) => ({ id: s.id, text: s.script })),
-          { id: "outro", text: outro },
-        ];
-        const result = await this.tts.synthesize(segments, onProgress);
-        audioBuffer = result.audio;
-        audioMime = result.mime;
-        audio = {
-          durationSec: Math.round(result.durationSec),
-          markers: result.markers,
-        };
-      } catch (err) {
-        // The LLM work is done and paid for — keep the text brief even if the
-        // voice step fails. The UI already handles an audio-less brief.
-        const message = err instanceof Error ? err.message : String(err);
-        this.logger.warn(`TTS failed: ${message}`);
-        audioError = message;
-      }
-    }
-
     await this.store.save({
       date,
       dateLabel,
@@ -197,11 +95,95 @@ export class BriefService implements OnModuleInit, OnModuleDestroy {
       sections,
       sourcesFailed: failures,
       sectionsFailed,
-      audio,
-      audioBuffer,
-      audioMime,
-      audioError,
+      // Audio is attached later by a separate TTS job.
+      audio: null,
+      audioBuffer: null,
+      audioMime: null,
+      audioError: null,
     });
+
+    onProgress("Brief text ready");
+    return { date };
+  }
+
+  /**
+   * Voice an already-saved text brief and attach the audio via a targeted
+   * update. Throws on synthesis failure so the caller (the TTS job) can retry
+   * without touching the text. When TTS is disabled, records "no audio".
+   */
+  async synthesizeForDate(
+    date: string,
+    onProgress: (step: string) => void = () => {},
+  ): Promise<void> {
+    const brief = await this.store.findByDate(date);
+    if (!brief) {
+      throw new Error(`No brief for ${date} to synthesize audio for.`);
+    }
+
+    if (this.tts.skip) {
+      await this.store.updateAudio(date, {
+        buffer: null,
+        mime: null,
+        durationSec: null,
+        markers: null,
+        error: null,
+      });
+      return;
+    }
+
+    const segments: BriefSegment[] = [
+      { id: "intro", text: brief.intro },
+      ...brief.sections.map((s) => ({ id: s.id, text: s.script })),
+      { id: "outro", text: brief.outro },
+    ];
+
+    const result = await this.tts.synthesize(segments, onProgress);
+    await this.store.updateAudio(date, {
+      buffer: result.audio,
+      mime: result.mime,
+      durationSec: Math.round(result.durationSec),
+      markers: result.markers,
+      error: null,
+    });
+    onProgress("Audio ready");
+  }
+
+  /**
+   * Record that voicing permanently failed on an already-saved brief, so the UI
+   * can distinguish "the voiceover failed" from an intentional no-audio brief.
+   */
+  async recordAudioError(date: string, message: string): Promise<void> {
+    await this.store.updateAudio(date, {
+      buffer: null,
+      mime: null,
+      durationSec: null,
+      markers: null,
+      error: message,
+    });
+  }
+
+  /**
+   * The whole pipeline in one call: text then audio. Unlike the job flow, a TTS
+   * failure here is swallowed (recorded as audioError) so the text brief still
+   * lands — used by tests and any direct, non-queued caller.
+   */
+  async generateBrief(
+    onProgress: (step: string) => void = () => {},
+  ): Promise<Brief> {
+    const { date } = await this.generateText(onProgress);
+    try {
+      await this.synthesizeForDate(date, onProgress);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`TTS failed: ${message}`);
+      await this.store.updateAudio(date, {
+        buffer: null,
+        mime: null,
+        durationSec: null,
+        markers: null,
+        error: message,
+      });
+    }
 
     onProgress("Brief ready");
     const saved = await this.store.findByDate(date);
