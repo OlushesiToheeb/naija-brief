@@ -1,6 +1,6 @@
 // Naija Brief service worker — app-shell caching so the PWA opens offline.
 // Bump CACHE when the shell changes to evict the old one.
-const CACHE = "naija-brief-v1";
+const CACHE = "naija-brief-v2";
 const SHELL = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
 
 self.addEventListener("install", (event) => {
