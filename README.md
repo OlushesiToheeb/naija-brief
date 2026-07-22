@@ -16,7 +16,7 @@ A TypeScript monorepo (npm workspaces):
 | **Frontend** | Next.js 16 (App Router, React 19) as an installable **PWA** |
 | **Backend** | NestJS 11 REST API |
 | **Storage** | PostgreSQL via TypeORM + migrations (briefs, sections, stories, audio as `bytea`, durable jobs) |
-| **LLM** | OpenRouter (default `deepseek/deepseek-v4-flash`) — summaries + drill-down chat |
+| **LLM** | OpenRouter (default `z-ai/glm-5.2`, swappable) — summaries + drill-down chat |
 | **Voice** | `kokoro-js` — Kokoro-82M ONNX TTS, runs locally |
 | **Schedule** | `@nestjs/schedule` cron — a fresh brief every morning |
 
@@ -72,23 +72,74 @@ morning at 6:00 Lagos time (`BRIEF_CRON`) while the API is running.
 On a phone, open the site and choose **Add to Home Screen** to install it as an
 app.
 
-## How it works
+## How it works — the AI engineering
+
+Two flows: **making** the brief overnight, and **listening** to it — including the
+live "interrupt the voice and ask" loop.
+
+### 1. Making the morning brief
+
+A durable, Postgres-backed job runs the pipeline at 6:00 Lagos time (or on demand):
 
 ```
-RSS feeds (Punch, Vanguard, Premium Times, Channels, TechCabal, Techpoint,
-Nairametrics, BusinessDay, Complete Sports, BBC, Al Jazeera, Guardian)
-        │  NewsService — fetch, dedupe, keep last 36h
-        ▼
-OpenRouter LLM — SummarizeService — per-section spoken scripts, story
-summaries, intro & sign-off (each section isolated; one failure can't sink the brief)
-        ▼
-Kokoro TTS — TtsService — one WAV with per-section time markers
-        ▼
-PostgreSQL — BriefStore — briefs + sections + stories, audio as bytea
-        ▼
-Next.js PWA — player with an "on-air" bar; "Ask" on any story chats with the
-LLM grounded in that article's text
+~20 RSS feeds        NewsService        fetch in parallel · strip HTML · dedupe by
+(Nigerian + world) ─►                    normalized title · keep last 36h · each feed's
+                                         failure isolated (recorded, never fatal)
+      │
+      ▼
+SummarizeService ──► LLM (OpenRouter)    per section: a fenced prompt of candidate
+                                         articles → JSON { spoken script, story picks },
+                                         plus a separate intro & sign-off call
+      │  the text brief is saved to Postgres first
+      ▼
+TtsService ────────► Kokoro-82M (local)  the whole brief → one MP3 with per-segment
+                                         time markers (ffmpeg-compressed)
+      │
+      ▼
+PostgreSQL           briefs · sections · stories · audio (bytea) · durable job rows
 ```
+
+`generate` and `tts` are **separate durable jobs**: the LLM output is saved before
+voicing, so a TTS failure retries only the audio and never re-pays for the model.
+
+### 2. Listening, and interrupting to ask
+
+The PWA streams the Kokoro MP3 and tracks position by the time markers. Tap **Ask** and:
+
+1. The briefing **pauses**; the segment that was playing is remembered.
+2. Your **browser's speech-to-text** (Web Speech API, on-device) transcribes your spoken question.
+3. `POST /api/ask` → the **LLM** answers, grounded *only* in that segment — the section's
+   stories and the script it just read (or a whole-brief overview during the intro/sign-off) —
+   in 1–3 spoken sentences.
+4. Your **browser's text-to-speech** reads the answer back instantly (no server audio round-trip).
+5. Tap **Resume** and playback continues from the exact second it paused.
+
+Two voices, on purpose: the **briefing** is Kokoro (server, pre-recorded, high quality);
+the **live answer** is the browser's voice (instant, conversational).
+
+### 3. "Tell me more" — per-story chat
+
+Tap any headline to chat about that one story. `POST /api/chat` fetches the **full article**
+from its link on demand (`ArticleService`) and grounds a deeper answer in the whole piece —
+so "go deeper" pulls the real detail, not just the summary.
+
+### The models, and how they're kept honest
+
+| Job | Model / tech | Where |
+| --- | --- | --- |
+| Write scripts + answer questions | **LLM via OpenRouter** — default `z-ai/glm-5.2`, swappable | Cloud |
+| Briefing voice | **Kokoro-82M** (local ONNX TTS) | API server |
+| Transcribe your interrupt | **Web Speech API** — speech-to-text | Browser |
+| Speak the interrupt answer | **Web Speech API** — text-to-speech | Browser |
+
+- **Grounded, never freewheeling.** Every LLM call is given only the day's articles or the
+  current segment and told to answer from that alone — not from its own memory.
+- **Prompt-injection fenced.** All feed text sits inside `<<<ARTICLE>>>` / `<<<STORY>>>` markers
+  the model is told never to obey, and our own markers are neutralized if they appear in feed
+  text — so a booby-trapped headline can't hijack the output.
+- **Cheap by design.** Reasoning tokens are disabled (`LLM_REASONING_EFFORT=none`, since the
+  work is extractive) and the shared editor prompt is prompt-cached across the section calls.
+  A day's brief costs roughly a cent or two.
 
 ## Scripts
 
@@ -130,9 +181,9 @@ The app is built to stay cheap:
 - **No reasoning-token waste.** Summarization/chat run with reasoning disabled
   (`LLM_REASONING_EFFORT=none`) — the work is extractive, so reasoning tokens are
   pure cost and also risk truncating the JSON.
-- **Automatic prompt caching.** DeepSeek caches identical prompt prefixes
-  (cache reads at 0.1× input price). The stable editor/system prompt is sent
-  first on every call, so the 6 section calls and multi-turn chats reuse it for free.
+- **Automatic prompt caching.** The default model (GLM-5.2) caches identical prompt
+  prefixes at a fraction of the input price. The stable editor/system prompt is sent
+  first on every call, so the section calls and multi-turn chats reuse it for free.
 
 ## Production hardening
 

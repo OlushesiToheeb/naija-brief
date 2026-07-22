@@ -46,7 +46,7 @@ export class OpenRouterService {
     const model =
       opts.model ||
       this.config.get<string>("OPENROUTER_MODEL") ||
-      "deepseek/deepseek-v4-flash";
+      "z-ai/glm-5.2";
 
     const payload: Record<string, unknown> = {
       model,

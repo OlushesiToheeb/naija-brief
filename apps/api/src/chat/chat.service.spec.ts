@@ -2,6 +2,7 @@ import { NotFoundException } from "@nestjs/common";
 import { ChatService } from "./chat.service";
 import { OpenRouterService } from "../llm/openrouter.service";
 import { BriefStore } from "../brief/brief-store.service";
+import { ArticleService } from "../news/article.service";
 import type { Brief } from "@naija-brief/shared";
 
 function briefWithStory(): Brief {
@@ -43,7 +44,14 @@ function makeService(mockMode: boolean, chatReply = "answer") {
   const store = {
     findByDate: jest.fn().mockResolvedValue(briefWithStory()),
   } as unknown as BriefStore;
-  return { service: new ChatService(llm, store), chat, store };
+  const fetchArticleText = jest.fn().mockResolvedValue(null);
+  const article = { fetchArticleText } as unknown as ArticleService;
+  return {
+    service: new ChatService(llm, store, article),
+    chat,
+    store,
+    fetchArticleText,
+  };
 }
 
 describe("ChatService.ask", () => {
@@ -84,6 +92,27 @@ describe("ChatService.ask", () => {
     // The feed-controlled headline must sit inside the fence.
     const fenceStart = system.content.indexOf("<<<STORY>>>");
     expect(system.content.indexOf("CBN holds rate")).toBeGreaterThan(fenceStart);
+  });
+
+  it("grounds the answer in the full article when one is fetched", async () => {
+    const { service, chat, fetchArticleText } = makeService(false);
+    const fullText =
+      "The central bank held its benchmark rate at 26.5 percent, citing " +
+      "sticky inflation, and Governor Cardoso warned of further tightening " +
+      "if food prices did not ease over the coming quarter.";
+    (fetchArticleText as jest.Mock).mockResolvedValue(fullText);
+
+    await service.ask("2026-07-22", "politics-1", [
+      { role: "user", content: "tell me more" },
+    ]);
+
+    expect(fetchArticleText).toHaveBeenCalledWith("https://x");
+    const messages = chat.mock.calls[0][0] as { role: string; content: string }[];
+    const system = messages.find((m) => m.role === "system")!;
+    expect(system.content).toContain(fullText);
+    // Full text replaces the thinner RSS excerpt inside the fence.
+    const fenceStart = system.content.indexOf("<<<STORY>>>");
+    expect(system.content.indexOf(fullText)).toBeGreaterThan(fenceStart);
   });
 
   describe("askSegment (voice interrupt)", () => {

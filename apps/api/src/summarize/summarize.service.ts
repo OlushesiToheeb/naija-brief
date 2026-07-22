@@ -65,12 +65,12 @@ ${this.articlesBlock(section.stories)}
 
 Reply with ONLY a JSON object, no other text:
 {
-  "script": "A 90-140 word spoken script covering the 3-5 most important stories in this section. Flow naturally from story to story.",
+  "script": "A 120-180 word spoken script covering the most important stories (up to 8) in this section. Flow naturally from story to story.",
   "stories": [
     { "n": <article number>, "headline": "short clear headline", "summary": "1-2 sentence summary of the story" }
   ]
 }
-List at most 6 stories, most important first. If nothing fits the focus, return a script that says in one sentence there is no major news here today, and an empty stories list.`;
+List up to 10 stories, most important first. If nothing fits the focus, return a script that says in one sentence there is no major news here today, and an empty stories list.`;
 
     const reply = await this.llm.chat(
       [
@@ -79,7 +79,7 @@ List at most 6 stories, most important first. If nothing fits the focus, return 
       ],
       // Generous budget: reasoning models (e.g. deepseek-v4-flash) spend
       // completion tokens thinking, and a truncated reply is invalid JSON.
-      { temperature: 0.3, maxTokens: 2400 },
+      { temperature: 0.3, maxTokens: 3000 },
     );
     const parsed = this.llm.parseJson<SectionReply>(reply);
 
