@@ -1,0 +1,92 @@
+name: CI
+
+# Render auto-deploys on every push to main. This runs the full suite first so a
+# broken commit is caught here rather than in production. To make the deploy
+# actually *wait* for green tests, turn off Auto-Deploy on the Render service and
+# add a RENDER_DEPLOY_HOOK_URL secret — the deploy job below then triggers it.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: Test & build
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: naija_brief_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: naija_brief_test
+      # The e2e suite only exercises the HTTP surface — it never calls the LLM
+      # or the voice engine, so no API key and no model download are needed.
+      SKIP_TTS: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck API
+        run: npx tsc --noEmit -p tsconfig.json
+        working-directory: apps/api
+
+      - name: Build the schema (same migrations production runs)
+        run: npm run migration:run --workspace apps/api
+
+      - name: API unit tests
+        run: npm test --workspace apps/api
+
+      - name: API end-to-end tests
+        run: npm run test:e2e --workspace apps/api
+
+      - name: Web tests
+        run: npm test --workspace apps/web
+
+      - name: Build API
+        run: npm run build --workspace apps/api
+
+      - name: Build web
+        run: npm run build --workspace apps/web
+
+  deploy:
+    name: Trigger Render deploy
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy (only if a deploy hook is configured)
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "No RENDER_DEPLOY_HOOK_URL secret set — skipping."
+            echo "Render's own Auto-Deploy is handling this push."
+            exit 0
+          fi
+          echo "Tests passed; asking Render to deploy."
+          curl -fsS -X POST "$HOOK" > /dev/null
+          echo "Deploy triggered."
