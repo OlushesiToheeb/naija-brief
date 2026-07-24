@@ -1,0 +1,70 @@
+# Render blueprint for Naija Brief.
+#
+# The database is NOT defined here — it lives on Supabase. Create the project
+# there first, then paste its connection string into DATABASE_URL below (Render
+# dashboard → Environment). Values marked `sync: false` are secrets/URLs you
+# fill in once; everything else ships as-is.
+#
+# Deploy: Render dashboard → New → Blueprint → point at this repo.
+
+services:
+  # ── The kitchen: NestJS API + the local Kokoro voice ──────────────────────
+  - type: web
+    name: naija-brief-api
+    runtime: docker
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: .
+    region: frankfurt # closest Render region to Lagos
+    # Kokoro loads an ONNX voice model — 512MB (starter) risks an OOM kill.
+    plan: standard
+    # MUST stay at 1: the 6am cron and the job queue assume a single instance.
+    numInstances: 1
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Supabase → Project Settings → Database → Connection string (URI).
+      # Prefer the session pooler host; it is IPv4-friendly and keeps long-lived
+      # connections, which is what a always-on Node server wants.
+      - key: DATABASE_URL
+        sync: false
+      # Managed Postgres requires TLS.
+      - key: DB_SSL
+        value: "1"
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        value: z-ai/glm-5.2
+      - key: LLM_REASONING_EFFORT
+        value: none
+      # 6am Africa/Lagos, every day.
+      - key: BRIEF_CRON
+        value: 0 6 * * *
+      # Set to the web app's public URL once it exists, e.g.
+      # https://naija-brief-web.onrender.com
+      - key: CORS_ORIGINS
+        sync: false
+      - key: TTS_VOICE
+        value: af_heart
+      - key: AUDIO_FORMAT
+        value: mp3
+      - key: AUDIO_BITRATE
+        value: 64k
+
+  # ── The front counter: the Next.js PWA ────────────────────────────────────
+  # Free alternative: deploy this folder to Cloudflare Pages instead and delete
+  # this service — the API above is the only piece that truly needs Render.
+  - type: web
+    name: naija-brief-web
+    runtime: node
+    region: frankfurt
+    plan: starter
+    buildCommand: npm ci && npm run build --workspace apps/web
+    startCommand: npm start --workspace apps/web
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Baked into the browser bundle at BUILD time, so set it before the first
+      # build: the API's public URL, e.g. https://naija-brief-api.onrender.com
+      - key: NEXT_PUBLIC_API_URL
+        sync: false

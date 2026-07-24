@@ -41,13 +41,13 @@ export function useAudioPlayer(brief: Brief | null): AudioPlayer {
     setCurrentTime(0);
     setIsPlaying(false);
     if (brief?.audio) {
-      audio.src = audioUrl(brief.date);
+      audio.src = audioUrl(brief.date, brief.generatedAt);
       setDuration(brief.audio.durationSec || 0);
     } else {
       audio.removeAttribute("src");
       setDuration(0);
     }
-  }, [brief?.date, brief?.audio]);
+  }, [brief?.date, brief?.audio, brief?.generatedAt]);
 
   // Wire element events to React state (once).
   useEffect(() => {

@@ -1,0 +1,14 @@
+# Keep the build context small and never ship local state or secrets.
+node_modules
+**/node_modules
+**/dist
+**/.next
+**/coverage
+.git
+.github
+.claude
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store

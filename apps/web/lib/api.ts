@@ -29,8 +29,15 @@ async function json<T>(res: Response): Promise<T> {
   return data as T;
 }
 
-export function audioUrl(date: string): string {
-  return `${API_BASE}/api/audio/${date}`;
+/**
+ * The audio for a date is cached hard (a day) but its CONTENT changes whenever
+ * the brief is regenerated. Tagging the URL with the generation timestamp gives
+ * each render its own address, so a fresh brief is never masked by the old
+ * audio sitting in the browser cache.
+ */
+export function audioUrl(date: string, version?: string): string {
+  const base = `${API_BASE}/api/audio/${date}`;
+  return version ? `${base}?v=${encodeURIComponent(version)}` : base;
 }
 
 export async function fetchBrief(date?: string): Promise<Brief> {

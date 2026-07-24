@@ -205,3 +205,45 @@ The app is built to stay cheap:
   in-flight job cleanly; whatever doesn't finish in time is requeued on restart.
 - The daily 6am job only fires while the API process is running. For a real
   daily habit, run the API on an always-on host.
+
+## Deploy (Supabase + Render)
+
+Three pieces: the **database** on Supabase, the **API + Kokoro voice** in a
+container on Render, and the **web app**. The API must be a single always-on
+instance — it owns the 6am cron and the job queue.
+
+**1 · Database (Supabase).** Create a project, then copy
+*Project Settings → Database → Connection string (URI)*. Prefer the **session
+pooler** host: it's IPv4-friendly and keeps the long-lived connections a
+persistent server wants.
+
+**2 · API (Render).** Dashboard → **New → Blueprint** → point at this repo; it
+reads [`render.yaml`](render.yaml). Then set the three secrets on the
+`naija-brief-api` service:
+
+| Variable | Value |
+| --- | --- |
+| `DATABASE_URL` | the Supabase URI from step 1 |
+| `OPENROUTER_API_KEY` | your key from <https://openrouter.ai/keys> |
+| `CORS_ORIGINS` | the web app's URL (fill in after step 3) |
+
+`DB_SSL=1` is already set — managed Postgres requires TLS. **Migrations run
+automatically on every boot** (they're idempotent), so the schema builds itself
+on the first deploy.
+
+**3 · Web app.** Set `NEXT_PUBLIC_API_URL` to the API's URL *before* the first
+build — Next.js bakes it into the browser bundle. Then put that web URL into the
+API's `CORS_ORIGINS` and redeploy the API.
+
+**4 · Check it.** `curl https://<api>/api/health` should return
+`{"status":"ok"}` (it does a real `SELECT 1`). Open the web app and press
+**Generate today's brief** — the text lands in ~1 minute and the audio attaches a
+few minutes later, on its own.
+
+**Sizing.** Kokoro loads an ONNX voice model, so give the API ~2 GB RAM (Render
+`standard`); 512 MB risks an OOM kill. The model is baked into the image, so a
+cold container can speak immediately. Keep `numInstances: 1`.
+
+**Cheaper option.** The web app is a static-ish PWA — deploying it to Cloudflare
+Pages (free) instead of Render and deleting that service from `render.yaml`
+leaves the API as the only paid piece.
